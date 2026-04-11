@@ -16,31 +16,18 @@ import SettingsPage from "./pages/SettingsPage.jsx";
 import TicketDashboard from "./pages/Tickets/TicketDashboard.jsx";
 import TicketDetailView from "./pages/Tickets/TicketDetailView.jsx";
 
-import { AuthProvider } from "./context/AuthContext.jsx";
+import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 
-function AppWithAuth() {
-  const devBypass = import.meta.env.VITE_BYPASS_AUTH === "false";
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+// AppRoutes lives inside <AuthProvider> so it can call useAuth().login
+function AppRoutes({
+  isAuthed,
+  setIsAuthed,
+  sidebarCollapsed,
+  setSidebarCollapsed,
+  devBypass,
+}) {
+  const { login } = useAuth();
 
-  useEffect(() => {
-    if (devBypass) {
-      console.warn("[App] Auth bypass is active (VITE_BYPASS_AUTH=true).");
-    }
-  }, [devBypass]);
-
-  // 1. Auth State
-  const [isAuthed, setIsAuthed] = useState(() => {
-    return devBypass || !!localStorage.getItem("jwt");
-  });
-
-  useEffect(() => {
-    const handleLogout = () => setIsAuthed(false);
-    window.addEventListener("auth:logout", handleLogout);
-    return () => window.removeEventListener("auth:logout", handleLogout);
-  }, []);
-
-  // 2. Provisioning Check
-  // We check if a job ID exists AND we haven't explicitly marked it as done
   const needsProvisioning = useMemo(() => {
     if (devBypass) return false;
     if (!isAuthed) return false;
@@ -48,13 +35,12 @@ function AppWithAuth() {
     const isDone = localStorage.getItem("isProvisioned") === "true";
     const hasJob = !!localStorage.getItem("provision_job_id");
 
-    // Logic: If we have a job ID pending and aren't marked done, go to provisioning.
     return hasJob && !isDone;
   }, [devBypass, isAuthed]);
 
   const handleAuthSuccess = (data) => {
     if (data?.access_token) {
-      localStorage.setItem("jwt", data.access_token);
+      login(data.access_token);
       setIsAuthed(true);
 
       try {
@@ -68,16 +54,10 @@ function AppWithAuth() {
     }
   };
 
-  // 3. Protected Route Wrapper
   const Protected = useMemo(() => {
     return function ProtectedWrapper({ children }) {
-      // Not logged in -> Login
       if (!devBypass && !isAuthed) return <Navigate to="/login" replace />;
-
-      // Logged in but provisioning incomplete -> Provisioning Page
       if (needsProvisioning) return <Navigate to="/provisioning" replace />;
-
-      // Logged in & Provisioned -> Dashboard Layout
       return (
         <AppLayout
           showSidebar
@@ -92,20 +72,22 @@ function AppWithAuth() {
   }, [devBypass, isAuthed, sidebarCollapsed, needsProvisioning]);
 
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Landing page */}
-          <Route 
-            path="/" 
-            element={
-              isAuthed ? (
-                <Navigate to={needsProvisioning ? "/provisioning" : "/dashboard"} replace />
-              ) : (
-                <LandingPage />
-              )
-            } 
-          />
+    <BrowserRouter>
+      <Routes>
+        {/* Landing page */}
+        <Route
+          path="/"
+          element={
+            isAuthed ? (
+              <Navigate
+                to={needsProvisioning ? "/provisioning" : "/dashboard"}
+                replace
+              />
+            ) : (
+              <LandingPage />
+            )
+          }
+        />
 
         {/* Public route: sign up */}
         <Route
@@ -141,7 +123,6 @@ function AppWithAuth() {
         <Route
           path="/provisioning"
           element={
-            // Only allow access if authenticated
             isAuthed ? <ProvisioningPage /> : <Navigate to="/login" replace />
           }
         />
@@ -155,7 +136,7 @@ function AppWithAuth() {
             </Protected>
           }
         />
-        
+
         <Route
           path="/security-dashboard"
           element={
@@ -165,32 +146,32 @@ function AppWithAuth() {
           }
         />
 
-          <Route
-            path="/workstations"
-            element={
-              <Protected>
-                <WorkstationsPage />
-              </Protected>
-            }
-          />
+        <Route
+          path="/workstations"
+          element={
+            <Protected>
+              <WorkstationsPage />
+            </Protected>
+          }
+        />
 
-          <Route
-            path="/employees"
-            element={
-              <Protected>
-                <EmployeesPage />
-              </Protected>
-            }
-          />
+        <Route
+          path="/employees"
+          element={
+            <Protected>
+              <EmployeesPage />
+            </Protected>
+          }
+        />
 
-          <Route
-            path="/groups"
-            element={
-              <Protected>
-                <GroupsPage />
-              </Protected>
-            }
-          />
+        <Route
+          path="/groups"
+          element={
+            <Protected>
+              <GroupsPage />
+            </Protected>
+          }
+        />
 
         <Route
           path="/files"
@@ -209,7 +190,8 @@ function AppWithAuth() {
             </Protected>
           }
         />
-<Route
+
+        <Route
           path="/tickets"
           element={
             <Protected>
@@ -226,7 +208,7 @@ function AppWithAuth() {
             </Protected>
           }
         />
-        
+
         {/* Catch-all */}
         <Route
           path="*"
@@ -243,14 +225,41 @@ function AppWithAuth() {
         />
       </Routes>
     </BrowserRouter>
+  );
+}
+
+function AppWithAuth() {
+  const devBypass = import.meta.env.VITE_BYPASS_AUTH === "false";
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isAuthed, setIsAuthed] = useState(() => {
+    return devBypass || !!localStorage.getItem("jwt");
+  });
+
+  useEffect(() => {
+    if (devBypass) {
+      console.warn("[App] Auth bypass is active (VITE_BYPASS_AUTH=true).");
+    }
+  }, [devBypass]);
+
+  useEffect(() => {
+    const handleLogout = () => setIsAuthed(false);
+    window.addEventListener("auth:logout", handleLogout);
+    return () => window.removeEventListener("auth:logout", handleLogout);
+  }, []);
+
+  return (
+    <AuthProvider>
+      <AppRoutes
+        isAuthed={isAuthed}
+        setIsAuthed={setIsAuthed}
+        sidebarCollapsed={sidebarCollapsed}
+        setSidebarCollapsed={setSidebarCollapsed}
+        devBypass={devBypass}
+      />
     </AuthProvider>
   );
 }
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <AppWithAuth />
-    </AuthProvider>
-  );
+  return <AppWithAuth />;
 }

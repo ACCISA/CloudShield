@@ -4,7 +4,7 @@ export default function WorkstationsIcon({
   height = 17,
   className = "",
 }) {
-  const color = selected ? "#fff" : "#BCBCBC";
+  const color = selected ? "var(--sidebar-icon-active)" : "#BCBCBC";
   const fillOpacity = selected ? "1" : "0";
 
   return (

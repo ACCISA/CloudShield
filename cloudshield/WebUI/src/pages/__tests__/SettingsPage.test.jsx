@@ -1,8 +1,21 @@
 import React from "react";
-import { render, screen, act, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  act,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react";
 import SettingsPage from "../SettingsPage";
 import { AuthProvider } from "../../context/AuthContext";
 import "@testing-library/jest-dom";
+
+jest.mock("../../api/client.js", () => ({
+  apiGet: jest.fn(),
+  apiPatch: jest.fn(),
+}));
+
+import { apiGet, apiPatch } from "../../api/client.js";
 
 jest.mock("../../components/settings/BasicInfoTab.jsx", () => {
   return function MockBasicInfoTab({ userData, onSave }) {
@@ -42,18 +55,19 @@ jest.mock("../../components/settings/AppearanceTab.jsx", () => {
 
 describe("SettingsPage", () => {
   beforeEach(() => {
-    global.fetch = jest.fn();
-    const localStorageMock = (function () {
-      let store = {};
-      return {
-        getItem: jest.fn((key) => store[key] || null),
-        setItem: jest.fn((key, value) => { store[key] = value.toString(); }),
-        removeItem: jest.fn((key) => { delete store[key]; }),
-        clear: jest.fn(() => { store = {}; }),
-      };
-    })();
-    Object.defineProperty(window, "localStorage", { value: localStorageMock });
-    localStorage.getItem.mockReturnValue("mock-jwt-token");
+    // Default: both initial fetches (user + org) succeed
+    apiGet
+      .mockResolvedValueOnce({
+        json: async () => ({
+          user: { id: "user-123", email: "test@example.com" },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({ organization: { id: "org-1", name: "Acme" } }),
+      });
+    apiPatch.mockResolvedValue({
+      json: async () => ({ user: { id: "user-123" } }),
+    });
   });
 
   afterEach(() => {
@@ -67,16 +81,17 @@ describe("SettingsPage", () => {
   };
 
   test("renders settings page with header", async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ user: { id: "user-123", full_name: "Test User" } }),
-    });
-
     await act(async () => {
       render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
@@ -84,16 +99,17 @@ describe("SettingsPage", () => {
   });
 
   test("renders tab navigation with all tabs", async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ user: { id: "user-123" } }),
-    });
-
     await act(async () => {
       render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
@@ -106,16 +122,17 @@ describe("SettingsPage", () => {
   });
 
   test("switches between tabs when clicked", async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ user: { id: "user-123" } }),
-    });
-
     const { rerender } = await act(async () => {
       return render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
@@ -134,7 +151,7 @@ describe("SettingsPage", () => {
   });
 
   test("displays accessible loading state initially", () => {
-    global.fetch.mockImplementation(() => new Promise(() => {}));
+    apiGet.mockImplementation(() => new Promise(() => {}));
 
     render(
       <AuthProvider
@@ -145,7 +162,7 @@ describe("SettingsPage", () => {
         }}
       >
         <SettingsPage />
-      </AuthProvider>
+      </AuthProvider>,
     );
 
     expect(screen.getByRole("status")).toBeInTheDocument();
@@ -154,63 +171,29 @@ describe("SettingsPage", () => {
   });
 
   test("fetches user data on mount", async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ user: { id: "user-123", email: "test@example.com" } }),
-    });
-
     await act(async () => {
       render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        "http://127.0.0.1:5050/api/users/user-123",
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            "Content-Type": "application/json",
-          }),
-        })
-      );
+      expect(apiGet).toHaveBeenCalledWith("/users/user-123");
     });
   });
 
   test("handles fetch errors gracefully", async () => {
     const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
-    global.fetch.mockRejectedValueOnce(new Error("Network error"));
-
-    await act(async () => {
-      render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
-          <SettingsPage />
-        </AuthProvider>
-      );
-    });
-
-    await waitFor(() => {
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        "Failed to load settings data",
-        expect.any(Error)
-      );
-    });
-
-    consoleErrorSpy.mockRestore();
-  });
-
-  test("shows success toast on user update", async () => {
-    global.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123", full_name: "Updated Name" } }),
-      });
+    apiGet.mockReset();
+    apiGet.mockRejectedValue(new Error("Network error"));
 
     await act(async () => {
       render(
@@ -222,7 +205,38 @@ describe("SettingsPage", () => {
           }}
         >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
+      );
+    });
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Failed to load settings data",
+        expect.any(Error),
+      );
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  test("shows success toast on user update", async () => {
+    apiPatch.mockResolvedValue({
+      json: async () => ({
+        user: { id: "user-123", full_name: "Updated Name" },
+      }),
+    });
+
+    await act(async () => {
+      render(
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
+          <SettingsPage />
+        </AuthProvider>,
       );
     });
 
@@ -233,26 +247,27 @@ describe("SettingsPage", () => {
     fireEvent.click(screen.getByText("Save BasicInfo"));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Settings saved successfully");
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Settings saved successfully",
+      );
     });
   });
 
   test("shows error toast on update failure", async () => {
-    global.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      })
-      .mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: "Update failed" }),
-      });
+    const err = new Error("Update failed");
+    apiPatch.mockRejectedValue(err);
 
     await act(async () => {
       render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
@@ -271,16 +286,6 @@ describe("SettingsPage", () => {
   });
 
   test("toast closes on click", async () => {
-    global.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      });
-
     jest.useFakeTimers();
 
     await act(async () => {
@@ -293,7 +298,7 @@ describe("SettingsPage", () => {
           }}
         >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
@@ -314,23 +319,32 @@ describe("SettingsPage", () => {
   });
 
   test("passes userData to tab components", async () => {
-    const userData = {
-      id: "user-123",
-      full_name: "Test User",
-      email: "test@example.com",
-      notification_preferences: {},
-    };
-
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ user: userData }),
-    });
+    apiGet
+      .mockResolvedValueOnce({
+        json: async () => ({
+          user: {
+            id: "user-123",
+            full_name: "Test User",
+            email: "test@example.com",
+            notification_preferences: {},
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({ organization: { id: "org-1" } }),
+      });
 
     await act(async () => {
       render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
@@ -340,16 +354,25 @@ describe("SettingsPage", () => {
   });
 
   test("handles response without user wrapper", async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ id: "user-123", full_name: "Test User" }),
-    });
+    apiGet
+      .mockResolvedValueOnce({
+        json: async () => ({ id: "user-123", full_name: "Test User" }),
+      })
+      .mockResolvedValueOnce({
+        json: async () => ({ organization: { id: "org-1" } }),
+      });
 
     await act(async () => {
       render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
@@ -359,23 +382,19 @@ describe("SettingsPage", () => {
   });
 
   test("toast closes on keydown Enter", async () => {
-    global.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      });
-
     jest.useFakeTimers();
 
     await act(async () => {
       render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
@@ -389,7 +408,9 @@ describe("SettingsPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Settings saved successfully")).toBeInTheDocument();
+      expect(
+        screen.getByText("Settings saved successfully"),
+      ).toBeInTheDocument();
     });
 
     const toastElement = screen.getByRole("alert");
@@ -397,29 +418,27 @@ describe("SettingsPage", () => {
       fireEvent.keyDown(toastElement, { key: "Enter" });
     });
 
-    expect(screen.queryByText("Settings saved successfully")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Settings saved successfully"),
+    ).not.toBeInTheDocument();
 
     jest.useRealTimers();
   });
 
   test("toast closes on keydown Space", async () => {
-    global.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      });
-
     jest.useFakeTimers();
 
     await act(async () => {
       render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
@@ -433,7 +452,9 @@ describe("SettingsPage", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Settings saved successfully")).toBeInTheDocument();
+      expect(
+        screen.getByText("Settings saved successfully"),
+      ).toBeInTheDocument();
     });
 
     const toastElement = screen.getByRole("alert");
@@ -441,29 +462,27 @@ describe("SettingsPage", () => {
       fireEvent.keyDown(toastElement, { key: " " });
     });
 
-    expect(screen.queryByText("Settings saved successfully")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Settings saved successfully"),
+    ).not.toBeInTheDocument();
 
     jest.useRealTimers();
   });
 
   test("toast has proper accessibility attributes", async () => {
-    global.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      });
-
     jest.useFakeTimers();
 
     await act(async () => {
       render(
-        <AuthProvider initialState={{ currentUser: mockAuthContext.currentUser, accessToken: mockAuthContext.accessToken, disableBootstrap: true }}>
+        <AuthProvider
+          initialState={{
+            currentUser: mockAuthContext.currentUser,
+            accessToken: mockAuthContext.accessToken,
+            disableBootstrap: true,
+          }}
+        >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
@@ -486,11 +505,6 @@ describe("SettingsPage", () => {
   });
 
   test("renders settings page heading inside PageShell body", async () => {
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ user: { id: "user-123", full_name: "Test User" } }),
-    });
-
     await act(async () => {
       render(
         <AuthProvider
@@ -501,26 +515,19 @@ describe("SettingsPage", () => {
           }}
         >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
     expect(
-      screen.getByRole("heading", { name: /settings/i })
+      screen.getByRole("heading", { name: /settings/i }),
     ).toBeInTheDocument();
   });
 
   test("shows normalized 401 message from errors.js on update failure", async () => {
-    global.fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ user: { id: "user-123" } }),
-      })
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        json: async () => ({}),
-      });
+    const err = new Error("HTTP 401");
+    err.status = 401;
+    apiPatch.mockRejectedValue(err);
 
     await act(async () => {
       render(
@@ -532,7 +539,7 @@ describe("SettingsPage", () => {
           }}
         >
           <SettingsPage />
-        </AuthProvider>
+        </AuthProvider>,
       );
     });
 
@@ -544,7 +551,7 @@ describe("SettingsPage", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Your session expired. Please sign in again."
+        "Your session expired. Please sign in again.",
       );
     });
   });

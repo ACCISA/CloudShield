@@ -97,7 +97,7 @@ export default function FilterButton({
   const checkmarkStyle = {
     width: "10px",
     height: "10px",
-    color: themeColors.bgPrimary,
+    color: themeColors.textPrimary,
   };
 
   const labelStyle = (isActive) => ({
@@ -113,9 +113,7 @@ export default function FilterButton({
   const toggleSwitchStyle = (isActive) => ({
     width: "44px",
     height: "24px",
-    backgroundColor: isActive
-      ? themeColors.secondary
-      : themeColors.border,
+    backgroundColor: isActive ? themeColors.secondary : themeColors.border,
     borderRadius: "12px",
     position: "relative",
     transition: "all 0.2s ease",
@@ -144,7 +142,7 @@ export default function FilterButton({
   const activeFilterCount = Object.values(activeFilters).reduce(
     (count, filterSet) =>
       count + (filterSet instanceof Set ? filterSet.size : 0),
-    0
+    0,
   );
 
   return (

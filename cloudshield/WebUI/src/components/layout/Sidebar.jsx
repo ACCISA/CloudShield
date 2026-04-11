@@ -65,8 +65,10 @@ function NavItem({
       sx={{
         width: "100%",
         borderRadius: "10px",
-        backgroundColor: active ? themeColors.lightOverlay : "transparent",
-        color: themeColors.textPrimary,
+        backgroundColor: active
+          ? themeColors.sidebarItemActiveBg
+          : "transparent",
+        color: active ? themeColors.textPrimary : themeColors.textSecondary,
       }}
     >
       <Box
@@ -87,7 +89,11 @@ function NavItem({
           alignItems: "center",
           justifyContent: collapsed ? "center" : "flex-start",
           borderRadius: "10px",
-          "&:hover": { backgroundColor: themeColors.lightOverlay },
+          "&:hover": {
+            backgroundColor: active
+              ? themeColors.sidebarItemActiveBg
+              : themeColors.sidebarItemHoverBg,
+          },
         }}
       >
         <Box
@@ -153,7 +159,7 @@ function NavItem({
               borderRadius: "6px",
               px: "4px",
               lineHeight: 1.2,
-              color: "#fff",
+              color: "var(--text-primary)",
               backgroundColor: countColor || "#444",
             }}
           />
@@ -245,27 +251,39 @@ function CompanySwitcher({ collapsed, showNav, navigate, myOrg, me }) {
           alignItems: "center",
           justifyContent: "center",
           position: "relative",
+          overflow: "hidden",
         }}
       >
-        <ShieldIcon
-          width={18}
-          height={18}
-          selected
-          className="company-shield-mark"
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            right: 6,
-            bottom: 7,
-            width: 7,
-            height: 1.75,
-            borderRadius: "999px",
-            backgroundColor: themeColors.textPrimary,
-            transform: "rotate(-38deg)",
-            opacity: 0.9,
-          }}
-        />
+        {myOrg?.logo ? (
+          <Box
+            component="img"
+            src={myOrg.logo}
+            alt={myOrg?.name || "Company logo"}
+            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <>
+            <ShieldIcon
+              width={18}
+              height={18}
+              selected
+              className="company-shield-mark"
+            />
+            <Box
+              sx={{
+                position: "absolute",
+                right: 6,
+                bottom: 7,
+                width: 7,
+                height: 1.75,
+                borderRadius: "999px",
+                backgroundColor: themeColors.textPrimary,
+                transform: "rotate(-38deg)",
+                opacity: 0.9,
+              }}
+            />
+          </>
+        )}
       </Box>
 
       {!collapsed && (
@@ -320,6 +338,7 @@ function SidebarBottomAction({
   ariaLabel,
   icon,
   onActivate,
+  active,
 }) {
   const themeColors = useThemeColors();
   const onKeyDown = (e) => {
@@ -337,13 +356,20 @@ function SidebarBottomAction({
         display: "flex",
         alignItems: "center",
         justifyContent: collapsed ? "center" : "flex-start",
-        color: themeColors.textPrimary,
+        color: active ? themeColors.textPrimary : themeColors.textSecondary,
         fontSize: "0.9rem",
         fontWeight: 500,
         cursor: "pointer",
         borderRadius: "8px",
         padding: collapsed ? "8px" : "8px 12px",
-        "&:hover": { backgroundColor: themeColors.lightOverlay },
+        backgroundColor: active
+          ? themeColors.sidebarItemActiveBg
+          : "transparent",
+        "&:hover": {
+          backgroundColor: active
+            ? themeColors.sidebarItemActiveBg
+            : themeColors.sidebarItemHoverBg,
+        },
       }}
       onClick={onActivate}
       onKeyDown={onKeyDown}
@@ -377,10 +403,12 @@ function SidebarNavigation({
   stats,
   statsLoading,
 }) {
-  const usersPill = "#6a4fcf";
-  const workstationPill = "#c94b4b";
-  const groupsPill = "#2656d8";
-  const sharesPill = "#c57a1c";
+  const themeColors = useThemeColors();
+  const isLight = themeColors.isLight;
+  const usersPill = isLight ? "#C4B5FD" : "#6a4fcf";
+  const workstationPill = isLight ? "#FCA5A5" : "#c94b4b";
+  const groupsPill = isLight ? "#93C5FD" : "#2656d8";
+  const sharesPill = isLight ? "#FCD34D" : "#c57a1c";
 
   const getBadgeCount = (value) => {
     if (collapsed) return undefined;
@@ -484,7 +512,14 @@ export default function Sidebar({
     pathname === path || pathname.startsWith(path + "/");
 
   const [me, setMe] = useState(null);
-  const [myOrg, setMyOrg] = useState(null);
+  const [myOrg, setMyOrg] = useState(() => {
+    try {
+      const cached = localStorage.getItem("org_cache");
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -497,11 +532,19 @@ export default function Sidebar({
 
         const orgRes = await (await apiGet("/organizations/me")).json();
         if (!mounted) return;
-        setMyOrg(orgRes.organization);
+        const org = orgRes.organization;
+        setMyOrg(org);
+        try {
+          localStorage.setItem(
+            "org_cache",
+            JSON.stringify({ name: org?.name, logo: org?.logo }),
+          );
+        } catch {
+          /* ignore */
+        }
       } catch {
         if (!mounted) return;
         setMe(null);
-        setMyOrg(null);
       }
     }
 
@@ -534,7 +577,7 @@ export default function Sidebar({
         minWidth: collapsed ? 72 : 280,
         height: "100vh",
         maxHeight: "100vh",
-        bgcolor: themeColors.bgPrimary,
+        bgcolor: themeColors.bgSidebar,
         color: themeColors.textPrimary,
         display: "flex",
         flexDirection: "column",
@@ -649,6 +692,7 @@ export default function Sidebar({
             ariaLabel="Settings"
             icon={<SettingsOutlinedIcon sx={{ fontSize: "1.1rem" }} />}
             onActivate={() => navigate("/settings")}
+            active={isActive("/settings")}
           />
           <SidebarBottomAction
             collapsed={collapsed}
@@ -658,6 +702,7 @@ export default function Sidebar({
               <ConfirmationNumberOutlinedIcon sx={{ fontSize: "1.1rem" }} />
             }
             onActivate={() => navigate("/tickets")}
+            active={isActive("/tickets")}
           />
           <SidebarBottomAction
             collapsed={collapsed}
@@ -840,6 +885,7 @@ CompanySwitcher.propTypes = {
   navigate: PropTypes.func.isRequired,
   myOrg: PropTypes.shape({
     name: PropTypes.string,
+    logo: PropTypes.string,
   }),
   me: PropTypes.shape({
     email: PropTypes.string,
@@ -852,6 +898,7 @@ SidebarBottomAction.propTypes = {
   ariaLabel: PropTypes.string.isRequired,
   icon: PropTypes.element.isRequired,
   onActivate: PropTypes.func.isRequired,
+  active: PropTypes.bool,
 };
 
 SidebarNavigation.propTypes = {

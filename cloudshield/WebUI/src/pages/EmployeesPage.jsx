@@ -559,7 +559,7 @@ export default function EmployeesPage() {
                       
                       <div style={dynamicStyles.iconFooter}>
                         <span style={dynamicStyles.iconMetaLabel}>{user.status || "offline"}</span>
-                        <ActiveIcon width={12} height={12} outerColor={user.status === "online" ? "#1F381F" : "#381F1F"} innerColor={user.status === "online" ? "#04C40A" : "#ff5252"} />
+                        <ActiveIcon width={12} height={12} outerColor={user.status === "online" ? "rgba(4, 196, 10, 0.2)" : "rgba(255, 82, 82, 0.2)"} innerColor={user.status === "online" ? "#04C40A" : "#ff5252"} />
                       </div>
                     </div>
                   );

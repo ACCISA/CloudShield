@@ -1,14 +1,57 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, Button, MenuItem, Select, Divider } from "@mui/material";
-import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
-import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
-import SettingsBrightnessOutlinedIcon from "@mui/icons-material/SettingsBrightnessOutlined";
 import { useAppTheme } from "../../context/ThemeContext.jsx";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
+import SaveButton from "../common/SaveButton/SaveButton.jsx";
 
 const THEMES = [
-  { value: "light", label: "Light", subtitle: "Always use light appearance", Icon: LightModeOutlinedIcon },
-  { value: "dark", label: "Dark", subtitle: "Always use dark appearance", Icon: DarkModeOutlinedIcon },
-  { value: "system", label: "System Default", subtitle: "Match your system settings", Icon: SettingsBrightnessOutlinedIcon },
+  {
+    value: "light",
+    label: "Light",
+    subtitle: "Always use light appearance",
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-12.37l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0zM7.05 18.36l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0z" />
+      </svg>
+    ),
+  },
+  {
+    value: "dark",
+    label: "Dark",
+    subtitle: "Always use dark appearance",
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z" />
+      </svg>
+    ),
+  },
+  {
+    value: "system",
+    label: "System Default",
+    subtitle: "Match your system settings",
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+      >
+        <path d="M20 3H4v10c0 1.1.9 2 2 2h3v2H7v2h10v-2h-2v-2h3c1.1 0 2-.9 2-2V3zm-2 10H6V5h12v8z" />
+      </svg>
+    ),
+  },
 ];
 
 const LANGUAGES = [
@@ -20,17 +63,16 @@ const LANGUAGES = [
   { value: "de-DE", label: "🇩🇪  Deutsch" },
 ];
 
-// Mini preview thumbnail for theme card
 const ThemePreview = ({ theme, isPreviewing }) => {
   const isDark = theme === "dark";
   const isLight = theme === "light";
-  
+
   return (
-    <Box
-      sx={{
+    <div
+      style={{
         width: "100%",
         height: 80,
-        bgcolor: isLight ? "#FAFAFA" : "#161616",
+        backgroundColor: isLight ? "#FAFAFA" : "#161616",
         borderRadius: "6px",
         overflow: "hidden",
         padding: "8px",
@@ -39,40 +81,66 @@ const ThemePreview = ({ theme, isPreviewing }) => {
         gap: "4px",
         border: isPreviewing ? "2px solid var(--accent-color)" : "none",
         transition: "all 0.3s ease",
+        boxSizing: "border-box",
       }}
     >
-      {/* Fake top bar */}
-      <Box sx={{ display: "flex", gap: "4px" }}>
-        <Box sx={{ width: 40, height: 6, borderRadius: 1, bgcolor: "#7c4dff", opacity: 0.8 }} />
-        <Box sx={{ width: 28, height: 6, borderRadius: 1, bgcolor: "#ff5252", opacity: 0.7 }} />
-        <Box sx={{ width: 32, height: 6, borderRadius: 1, bgcolor: "#ffab40", opacity: 0.7 }} />
-      </Box>
-      {/* Fake rows */}
-      {[1, 2, 3].map((r) => (
-        <Box
-          key={r}
-          sx={{
+      <div style={{ display: "flex", gap: "4px" }}>
+        <div
+          style={{
+            width: 40,
             height: 6,
-            borderRadius: 1,
-            bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)",
+            borderRadius: 2,
+            backgroundColor: "#7c4dff",
+            opacity: 0.8,
+          }}
+        />
+        <div
+          style={{
+            width: 28,
+            height: 6,
+            borderRadius: 2,
+            backgroundColor: "#ff5252",
+            opacity: 0.7,
+          }}
+        />
+        <div
+          style={{
+            width: 32,
+            height: 6,
+            borderRadius: 2,
+            backgroundColor: "#ffab40",
+            opacity: 0.7,
+          }}
+        />
+      </div>
+      {[1, 2, 3].map((r) => (
+        <div
+          key={r}
+          style={{
+            height: 6,
+            borderRadius: 2,
+            backgroundColor: isDark
+              ? "rgba(255,255,255,0.08)"
+              : "rgba(0,0,0,0.1)",
             width: r === 3 ? "65%" : "90%",
           }}
         />
       ))}
-    </Box>
+    </div>
   );
 };
 
 export default function AppearanceTab() {
-  const { themeMode, updateTheme, previewTheme, clearPreview, previewMode } = useAppTheme();
+  const { themeMode, updateTheme, previewTheme, clearPreview, previewMode } =
+    useAppTheme();
+  const themeColors = useThemeColors();
   const [selectedTheme, setSelectedTheme] = useState(themeMode);
   const [language, setLanguage] = useState(
-    () => localStorage.getItem("cs_language") || "en-CA"
+    () => localStorage.getItem("cs_language") || "en-CA",
   );
   const [saved, setSaved] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Apply preview when selectedTheme changes
   useEffect(() => {
     if (selectedTheme !== themeMode) {
       previewTheme(selectedTheme);
@@ -97,64 +165,113 @@ export default function AppearanceTab() {
     setHasChanges(false);
   };
 
-  return (
-    <Box>
-      <Typography sx={{ color: "text.primary", fontWeight: 700, fontSize: "1.1rem", mb: 0.5 }}>
-        Appearance
-      </Typography>
-      <Typography sx={{ color: "text.secondary", fontSize: "0.85rem", mb: 3 }}>
-        Change how the dashboard looks and feels
-      </Typography>
+  const isSaveDisabled = !hasChanges && selectedTheme === themeMode;
 
-      <Divider sx={{ borderColor: "divider", mb: 3 }} />
+  return (
+    <div>
+      <p
+        style={{
+          color: themeColors.textPrimary,
+          fontWeight: 700,
+          fontSize: "1.1rem",
+          margin: "0 0 4px 0",
+        }}
+      >
+        Appearance
+      </p>
+      <p
+        style={{
+          color: themeColors.textSecondary,
+          fontSize: "0.85rem",
+          margin: "0 0 24px 0",
+        }}
+      >
+        Change how the dashboard looks and feels
+      </p>
+
+      <hr
+        style={{
+          borderColor: themeColors.borderLight,
+          borderStyle: "solid",
+          borderWidth: "0 0 1px 0",
+          margin: "0 0 24px 0",
+        }}
+      />
 
       {/* Dashboard Colour */}
-      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 4, mb: 4 }}>
-        <Box sx={{ width: 200, flexShrink: 0 }}>
-          <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.95rem" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 32,
+          marginBottom: 32,
+        }}
+      >
+        <div style={{ width: 200, flexShrink: 0 }}>
+          <p
+            style={{
+              color: themeColors.textPrimary,
+              fontWeight: 600,
+              fontSize: "0.95rem",
+              margin: 0,
+            }}
+          >
             Dashboard colour
-          </Typography>
-          <Typography sx={{ color: "text.secondary", fontSize: "0.8rem", mt: 0.5 }}>
+          </p>
+          <p
+            style={{
+              color: themeColors.textSecondary,
+              fontSize: "0.8rem",
+              margin: "4px 0 0 0",
+            }}
+          >
             Change the colour of the dashboard
-          </Typography>
+          </p>
           {previewMode && previewMode !== themeMode && (
-            <Typography sx={{ color: "#ff9800", fontSize: "0.75rem", mt: 1, fontWeight: 500 }}>
+            <p
+              style={{
+                color: "#ff9800",
+                fontSize: "0.75rem",
+                margin: "8px 0 0 0",
+                fontWeight: 500,
+              }}
+            >
               Preview active
-            </Typography>
+            </p>
           )}
-        </Box>
+        </div>
 
-        <Box sx={{ display: "flex", gap: 2, flex: 1 }}>
-          {THEMES.map(({ value, label, subtitle, Icon }) => {
+        <div style={{ display: "flex", gap: 16, flex: 1 }}>
+          {THEMES.map(({ value, label, subtitle, icon }) => {
             const isSelected = selectedTheme === value;
             const isActive = themeMode === value;
             const isPreviewing = previewMode === value;
-            
+
             return (
-              <Box
+              <div
                 key={value}
                 onClick={() => setSelectedTheme(value)}
-                sx={{
+                style={{
                   flex: 1,
-                  border: "2px solid",
-                  borderColor: isSelected ? "var(--accent-color)" : isPreviewing ? "rgba(255, 152, 0, 0.5)" : "divider",
+                  border: `2px solid ${isSelected ? "var(--accent-color)" : isPreviewing ? "rgba(255,152,0,0.5)" : themeColors.borderLight}`,
                   borderRadius: "12px",
                   padding: "12px",
                   cursor: "pointer",
-                  bgcolor: isSelected ? "action.hover" : "background.paper",
+                  backgroundColor: isSelected
+                    ? themeColors.lightOverlay
+                    : themeColors.surface,
                   transition: "all 0.2s ease",
-                  "&:hover": { borderColor: "var(--accent-color)" },
                   position: "relative",
                 }}
               >
                 {isActive && !isSelected && (
-                  <Box
-                    sx={{
+                  <span
+                    style={{
                       position: "absolute",
                       top: 8,
                       right: 8,
-                      bgcolor: "text.secondary",
-                      color: "background.paper",
+                      backgroundColor: themeColors.textSecondary,
+                      color: themeColors.bgPrimary,
                       fontSize: "0.65rem",
                       fontWeight: 700,
                       padding: "2px 8px",
@@ -163,16 +280,16 @@ export default function AppearanceTab() {
                     }}
                   >
                     Current
-                  </Box>
+                  </span>
                 )}
                 {isSelected && (
-                  <Box
-                    sx={{
+                  <span
+                    style={{
                       position: "absolute",
                       top: 8,
                       right: 8,
-                      bgcolor: "text.primary",
-                      color: "background.paper",
+                      backgroundColor: themeColors.textPrimary,
+                      color: themeColors.bgPrimary,
                       fontSize: "0.65rem",
                       fontWeight: 700,
                       padding: "2px 8px",
@@ -180,126 +297,155 @@ export default function AppearanceTab() {
                     }}
                   >
                     {isPreviewing ? "Previewing" : "Selected"}
-                  </Box>
+                  </span>
                 )}
 
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                  <Icon sx={{ fontSize: "1rem", color: "text.secondary" }} />
-                  <Typography sx={{ color: "text.secondary", fontSize: "0.8rem" }}>{label}</Typography>
-                </Box>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 8,
+                    color: themeColors.textSecondary,
+                  }}
+                >
+                  {icon}
+                  <span
+                    style={{
+                      color: themeColors.textSecondary,
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    {label}
+                  </span>
+                </div>
 
                 <ThemePreview theme={value} isPreviewing={isPreviewing} />
 
-                <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.85rem", mt: 1 }}>
+                <p
+                  style={{
+                    color: themeColors.textPrimary,
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    margin: "8px 0 0 0",
+                  }}
+                >
                   {label}
-                </Typography>
-                <Typography sx={{ color: "text.secondary", fontSize: "0.75rem" }}>{subtitle}</Typography>
-              </Box>
+                </p>
+                <p
+                  style={{
+                    color: themeColors.textSecondary,
+                    fontSize: "0.75rem",
+                    margin: "2px 0 0 0",
+                  }}
+                >
+                  {subtitle}
+                </p>
+              </div>
             );
           })}
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      <Divider sx={{ borderColor: "divider", mb: 3 }} />
+      <hr
+        style={{
+          borderColor: themeColors.borderLight,
+          borderStyle: "solid",
+          borderWidth: "0 0 1px 0",
+          margin: "0 0 24px 0",
+        }}
+      />
 
       {/* Language */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 4, mb: 4 }}>
-        <Box sx={{ width: 200, flexShrink: 0 }}>
-          <Typography sx={{ color: "text.primary", fontWeight: 600, fontSize: "0.95rem" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 32,
+          marginBottom: 32,
+        }}
+      >
+        <div style={{ width: 200, flexShrink: 0 }}>
+          <p
+            style={{
+              color: themeColors.textPrimary,
+              fontWeight: 600,
+              fontSize: "0.95rem",
+              margin: 0,
+            }}
+          >
             Language
-          </Typography>
-          <Typography sx={{ color: "text.secondary", fontSize: "0.8rem", mt: 0.5 }}>
+          </p>
+          <p
+            style={{
+              color: themeColors.textSecondary,
+              fontSize: "0.8rem",
+              margin: "4px 0 0 0",
+            }}
+          >
             Default language for the dashboard
-          </Typography>
-        </Box>
+          </p>
+        </div>
 
-        <Select
+        <select
           value={language}
           onChange={(e) => setLanguage(e.target.value)}
-          sx={{
+          style={{
             width: 300,
-            bgcolor: "background.paper",
-            color: "text.primary",
+            backgroundColor: themeColors.surface,
+            color: themeColors.textPrimary,
             borderRadius: "8px",
-            "& .MuiOutlinedInput-notchedOutline": { borderColor: "divider" },
-            "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "text.secondary" },
-            "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "text.primary" },
-            "& .MuiSvgIcon-root": { color: "text.secondary" },
-          }}
-          MenuProps={{
-            PaperProps: {
-              sx: {
-                bgcolor: "background.paper",
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: "10px",
-                "& .MuiMenuItem-root": {
-                  color: "text.primary",
-                  fontSize: "0.88rem",
-                  "&:hover": { bgcolor: "action.hover" },
-                  "&.Mui-selected": { bgcolor: "action.selected" },
-                },
-              },
-            },
+            border: `1px solid ${themeColors.borderLight}`,
+            padding: "10px 12px",
+            fontSize: "0.88rem",
+            cursor: "pointer",
+            outline: "none",
           }}
         >
           {LANGUAGES.map((lang) => (
-            <MenuItem key={lang.value} value={lang.value}>
+            <option key={lang.value} value={lang.value}>
               {lang.label}
-            </MenuItem>
+            </option>
           ))}
-        </Select>
-      </Box>
+        </select>
+      </div>
 
-      <Divider sx={{ borderColor: "divider", mb: 3 }} />
+      <hr
+        style={{
+          borderColor: themeColors.borderLight,
+          borderStyle: "solid",
+          borderWidth: "0 0 1px 0",
+          margin: "0 0 24px 0",
+        }}
+      />
 
       {/* Action buttons */}
-      <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-        <Button
+      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+        <SaveButton
           onClick={handleSave}
-          variant="contained"
-          disabled={!hasChanges && selectedTheme === themeMode}
-          sx={{
-            bgcolor: "text.primary",
-            color: "background.paper",
-            fontWeight: 600,
-            borderRadius: "10px",
-            textTransform: "none",
-            padding: "10px 28px",
-            "&:hover": { 
-              bgcolor: "text.secondary",
-            },
-            "&:disabled": {
-              bgcolor: "text.secondary",
-              opacity: 0.5,
-              cursor: "not-allowed",
-            },
-          }}
-        >
-          {saved ? "Saved!" : (hasChanges ? "Save changes" : "Save changes")}
-        </Button>
-        
+          disabled={isSaveDisabled}
+          saved={saved}
+        />
+
         {hasChanges && (
-          <Button
+          <button
             onClick={handleCancel}
-            variant="outlined"
-            sx={{
-              borderColor: "divider",
-              color: "text.primary",
+            style={{
+              borderColor: themeColors.borderLight,
+              color: themeColors.textPrimary,
               fontWeight: 600,
               borderRadius: "10px",
-              textTransform: "none",
+              border: `1px solid ${themeColors.borderLight}`,
               padding: "10px 28px",
-              "&:hover": { 
-                borderColor: "text.primary",
-                bgcolor: "action.hover",
-              },
+              cursor: "pointer",
+              background: "none",
+              fontSize: "1rem",
             }}
           >
             Cancel
-          </Button>
+          </button>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }

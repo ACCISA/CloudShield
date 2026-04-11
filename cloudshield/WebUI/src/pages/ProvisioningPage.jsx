@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import CloudshieldIcon from "../assets/CloudshieldIcon.jsx";
 import ProvisioningProgressBar from "../components/provisioning/ProvisioningProgressBar.jsx";
+import { useThemeColors } from "../hooks/useThemeColors.js";
 
 import {apiGet, apiPost} from "../api/client"
 import PageShell from "../components/layout/PageShell.jsx";
@@ -49,6 +50,7 @@ export default function ProvisioningPage() {
   const pollTimerRef = useRef(null);
   const animationTimerRef = useRef(null);
   const successHandled = useRef(false);
+  const { isDark } = useThemeColors();
 
   const [jobId, setJobId] = useState(() => {
     return localStorage.getItem("provision_job_id") || readLocalUser()?.job_id || null;
@@ -196,7 +198,12 @@ export default function ProvisioningPage() {
           gap: 1,
         }}
       >
-        <CloudshieldIcon width={40} height={40} />
+        <CloudshieldIcon
+          width={40}
+          height={40}
+          shieldFill={isDark ? "white" : "#111827"}
+          iconFill={isDark ? "black" : "white"}
+        />
       </Box>
 
       <Box sx={{ width: "100%", maxWidth: 700 }}>

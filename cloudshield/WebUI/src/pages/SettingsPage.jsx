@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Box, Tab, Tabs, Typography } from "@mui/material";
 import { useAuth } from "../context/AuthContext.jsx";
-
+import { useThemeColors } from "../hooks/useThemeColors.js";
 import PageShell from "../components/layout/PageShell.jsx";
 import Skeleton from "../components/ui/Skeleton.jsx";
 
@@ -10,53 +9,46 @@ import BillingTab from "../components/settings/BillingTab.jsx";
 import NotificationsTab from "../components/settings/NotificationsTab.jsx";
 import AppearanceTab from "../components/settings/AppearanceTab.jsx";
 
+import { apiGet, apiPatch } from "../api/client.js";
 import { safeAsync } from "../lib/safeAsync.js";
 
-const API_BASE = "http://127.0.0.1:5050";
 const TABS = ["Basic Info", "Plan & Billing", "Notifications", "Appearance"];
-
-const getAuthHeader = () => {
-  const token = localStorage.getItem("jwt");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
-async function buildApiError(res, fallbackMessage) {
-  const body = await res.json().catch(() => ({}));
-  const err = new Error(body?.message || body?.error || fallbackMessage);
-  err.response = {
-    status: res.status,
-    data: body,
-  };
-  return err;
-}
 
 function SettingsLoading() {
   return (
-    <Box
+    <div
       role="status"
       aria-live="polite"
       data-testid="settings-loading"
-      sx={{ mt: 2 }}
+      style={{ marginTop: 16 }}
     >
-      <Typography sx={{ color: "text.secondary", mb: 2 }}>
+      <p
+        style={{
+          color: "var(--text-secondary)",
+          marginBottom: 16,
+          margin: "0 0 16px 0",
+        }}
+      >
         Loading settings...
-      </Typography>
+      </p>
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <Skeleton height={24} width="24%" />
         <Skeleton height={14} width="100%" />
         <Skeleton height={14} width="72%" />
         <Skeleton height={220} width="100%" style={{ borderRadius: 16 }} />
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
 
 export default function SettingsPage() {
-  const { currentUser } = useAuth();
+  const { currentUser, authLoading } = useAuth();
+  const themeColors = useThemeColors();
 
   const [activeTab, setActiveTab] = useState(0);
   const [userData, setUserData] = useState(null);
+  const [orgData, setOrgData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({
     open: false,
@@ -94,6 +86,12 @@ export default function SettingsPage() {
   useEffect(() => {
     let cancelled = false;
 
+    if (authLoading) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
     if (!currentUser?.id) {
       setLoading(false);
       return () => {
@@ -106,22 +104,19 @@ export default function SettingsPage() {
 
       try {
         const response = await safeAsync(async () => {
-          const userRes = await fetch(`${API_BASE}/api/users/${currentUser.id}`, {
-            headers: {
-              "Content-Type": "application/json",
-              ...getAuthHeader(),
-            },
-          });
+          const [userRes, orgRes] = await Promise.all([
+            apiGet(`/users/${currentUser.id}`),
+            apiGet("/organizations/me").catch(() => null),
+          ]);
 
-          if (!userRes.ok) {
-            throw await buildApiError(userRes, "Failed to load settings");
-          }
-
-          return userRes.json();
+          const userData = await userRes.json();
+          const orgData = orgRes ? await orgRes.json() : null;
+          return { userData, orgData };
         });
 
         if (!cancelled) {
-          setUserData(response.user || response);
+          setUserData(response.userData?.user || response.userData);
+          setOrgData(response.orgData?.organization || null);
         }
       } catch (e) {
         console.error("Failed to load settings data", e);
@@ -137,7 +132,7 @@ export default function SettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, authLoading]);
 
   const handleUserUpdate = async (payload) => {
     if (!currentUser?.id) return false;
@@ -145,27 +140,14 @@ export default function SettingsPage() {
     try {
       const response = await safeAsync(
         async () => {
-          const res = await fetch(`${API_BASE}/api/users/${currentUser.id}`, {
-            method: "PATCH",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-              ...getAuthHeader(),
-            },
-            body: JSON.stringify(payload),
-          });
-
-          if (!res.ok) {
-            throw await buildApiError(res, "Failed to update");
-          }
-
+          const res = await apiPatch(`/users/${currentUser.id}`, payload);
           return res.json();
         },
         {
           toast: {
             error: (msg) => openToast(msg, "error"),
           },
-        }
+        },
       );
 
       setUserData(response.user || response);
@@ -176,10 +158,48 @@ export default function SettingsPage() {
     }
   };
 
+  const handleOrgUpdate = async (payload) => {
+    try {
+      const response = await safeAsync(
+        async () => {
+          const res = await apiPatch("/organizations/me", payload);
+          return res.json();
+        },
+        {
+          toast: {
+            error: (msg) => openToast(msg, "error"),
+          },
+        },
+      );
+
+      const org = response.organization || response;
+      setOrgData(org);
+      try {
+        localStorage.setItem(
+          "org_cache",
+          JSON.stringify({ name: org?.name, logo: org?.logo }),
+        );
+      } catch {
+        /* ignore */
+      }
+      openToast("Settings saved successfully", "success");
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const renderActiveTab = () => {
     switch (activeTab) {
       case 0:
-        return <BasicInfoTab userData={userData} onSave={handleUserUpdate} />;
+        return (
+          <BasicInfoTab
+            userData={userData}
+            onSave={handleUserUpdate}
+            orgData={orgData}
+            onOrgSave={handleOrgUpdate}
+          />
+        );
       case 1:
         return <BillingTab />;
       case 2:
@@ -195,58 +215,66 @@ export default function SettingsPage() {
 
   return (
     <>
-      <Box sx={{ minHeight: "100vh", backgroundColor: "background.default" }}>
+      <div style={{ minHeight: "100vh", backgroundColor: "var(--bg-primary)" }}>
         <PageShell>
-          <Typography
-            variant="h4"
-            sx={{
+          <h1
+            style={{
               fontWeight: 700,
-              color: "text.primary",
-              mb: 1,
+              color: themeColors.textPrimary,
+              marginBottom: 8,
               fontSize: "2rem",
               letterSpacing: "-0.5px",
+              margin: "0 0 8px 0",
             }}
           >
             Settings
-          </Typography>
+          </h1>
 
-          <Tabs
-            value={activeTab}
-            onChange={(_, value) => setActiveTab(value)}
-            sx={{
-              mb: 2,
-              borderBottom: "1px solid",
-              borderBottomColor: "var(--divider)", // Use variable
-              "& .MuiTab-root": {
-                textTransform: "none",
-                fontWeight: 500,
-                fontSize: "0.95rem",
-                minWidth: "auto",
-                padding: "12px 0",
-                marginRight: "32px",
-                color: "var(--text-secondary)", // Use variable
-                transition: "color 0.2s ease",
-              },
-              "& .Mui-selected": { 
-                color: "var(--text-primary) !important", // Force text primary
-                fontWeight: 600,
-              },
-              "& .MuiTabs-indicator": { 
-                backgroundColor: "var(--text-primary)", // Force text primary
-                height: "2px",
-              },
+          <div
+            role="tablist"
+            style={{
+              marginBottom: 16,
+              borderBottom: `1px solid ${themeColors.borderLight}`,
+              display: "flex",
             }}
           >
-            {TABS.map((label) => (
-              <Tab key={label} label={label} disableRipple />
+            {TABS.map((label, index) => (
+              <button
+                key={label}
+                role="tab"
+                aria-selected={activeTab === index}
+                onClick={() => setActiveTab(index)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontWeight: activeTab === index ? 600 : 500,
+                  fontSize: "0.95rem",
+                  padding: "12px 0",
+                  marginRight: "32px",
+                  color:
+                    activeTab === index
+                      ? themeColors.textPrimary
+                      : themeColors.textSecondary,
+                  borderBottom:
+                    activeTab === index
+                      ? `2px solid ${themeColors.textPrimary}`
+                      : "2px solid transparent",
+                  marginBottom: -1,
+                  transition: "color 0.2s ease",
+                  outline: "none",
+                }}
+              >
+                {label}
+              </button>
             ))}
-          </Tabs>
+          </div>
 
-          <Box sx={{ flex: 1, minHeight: 0 }}>
+          <div style={{ flex: 1, minHeight: 0 }}>
             {loading ? <SettingsLoading /> : renderActiveTab()}
-          </Box>
+          </div>
         </PageShell>
-      </Box>
+      </div>
 
       {toast.open && (
         <div
@@ -266,7 +294,7 @@ export default function SettingsPage() {
             padding: "12px 24px",
             borderRadius: "12px",
             backgroundColor: toast.type === "error" ? "#d32f2f" : "#2e7d32",
-            color: "text.primary",
+            color: "#ffffff",
             fontSize: "1rem",
             boxShadow: "0 8px 20px rgba(0,0,0,0.35)",
             zIndex: 9999,

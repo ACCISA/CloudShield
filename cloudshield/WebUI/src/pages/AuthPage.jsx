@@ -49,11 +49,11 @@ function getAuthErrorMessage({ status, data }) {
     return apiMsg || "Please check your email and password and try again.";
   if (status === 401) return apiMsg || "Incorrect email or password.";
   if (status === 403)
-    return apiMsg || "You don’t have permission to access this account.";
+    return apiMsg || "You don\u2019t have permission to access this account.";
   if (status === 404)
     return apiMsg || "Login service not found. Please contact support.";
   if (status >= 500)
-    return "We’re having trouble signing you in right now. Please try again.";
+    return "We're having trouble signing you in right now. Please try again.";
 
   return apiMsg || "Login failed. Please try again.";
 }
@@ -137,7 +137,7 @@ export default function AuthPage({ onLoginSuccess }) {
         />
 
         <PrimaryButton onClick={handleLogin} disabled={isLoading || !canSubmit}>
-          {isLoading ? "Signing in…" : "Sign in"}
+          {isLoading ? "Signing in\u2026" : "Sign in"}
         </PrimaryButton>
 
         <button

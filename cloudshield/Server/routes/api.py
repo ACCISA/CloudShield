@@ -863,6 +863,96 @@ def get_my_organization():
         "organization": {
             "id": str(doc.get("_id")),
             "name": doc.get("name"),
+            "logo": doc.get("logo"),
+            "package": doc.get("package"),
+            "domain_name": doc.get("domain_name"),
+            "realm_name": doc.get("realm_name"),
+            "workstation_limit": doc.get("workstation_limit"),
+            "user_limit": doc.get("user_limit"),
+            "storage_limit_gb": doc.get("storage_limit_gb"),
+            "provisioning_status": doc.get("provisioning_status"),
+            "provisioning_job_id": doc.get("provisioning_job_id"),
+            "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
+            "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
+        }
+    }), 200
+
+@api_bp.route("/organizations/me", methods=["PATCH"])
+@require_auth
+def update_my_organization():
+    """
+    Update the current user's organization (admin only).
+
+    Endpoint:
+        PATCH /api/organizations/me
+
+    Request JSON (any subset):
+        - name (str, optional): New organisation display name.
+        - logo (str, optional): Base64 data-URL of the business logo image.
+                                Pass null to remove the logo.
+
+    Returns:
+        200: { "organization": { ... } }
+        400: { "error": "..." }  – oversized logo or bad input
+        401: Unauthorized
+        403: Requires admin role
+        404: Organization not found
+        500: Internal server error
+    """
+    if (g.user or {}).get("role") != "admin":
+        return jsonify({"error": "Admin role required"}), 403
+
+    org_id = (g.user or {}).get("org_id")
+    if not org_id:
+        return jsonify({"error": "org_id missing from token"}), 401
+
+    try:
+        ObjectId(org_id)
+    except InvalidId:
+        return jsonify({"error": "Invalid organization ID format"}), 400
+
+    body = request.get_json(silent=True) or {}
+
+    # Reject payloads with keys we don't accept
+    allowed_keys = {"name", "logo"}
+    unknown = set(body.keys()) - allowed_keys
+    if unknown:
+        return jsonify({"error": f"Unknown fields: {', '.join(sorted(unknown))}"}), 400
+
+    # Enforce a reasonable logo size limit (1 MB of the data-URL string)
+    logo_value = body.get("logo")
+    if logo_value is not None and isinstance(logo_value, str) and len(logo_value) > 1_400_000:
+        return jsonify({"error": "Logo must be under 1 MB"}), 400
+
+    update_fields = {"updated_at": datetime.now(timezone.utc)}
+    if "name" in body:
+        name = body["name"]
+        if name is not None and not isinstance(name, str):
+            return jsonify({"error": "name must be a string"}), 400
+        update_fields["name"] = name
+    if "logo" in body:
+        update_fields["logo"] = logo_value  # may be None to clear
+
+    if len(update_fields) == 1:  # only updated_at
+        pass  # no-op but still return current state
+
+    try:
+        organizations.update_one(
+            {"_id": ObjectId(org_id)},
+            {"$set": update_fields},
+        )
+        doc = organizations.find_one({"_id": ObjectId(org_id)})
+    except Exception:
+        return jsonify({"error": "Internal server error"}), 500
+
+    if not doc:
+        return jsonify({"error": "Organization not found"}), 404
+
+    return jsonify({
+        "organization": {
+            "id": str(doc.get("_id")),
+            "name": doc.get("name"),
+            "logo": doc.get("logo"),
             "package": doc.get("package"),
             "domain_name": doc.get("domain_name"),
             "realm_name": doc.get("realm_name"),

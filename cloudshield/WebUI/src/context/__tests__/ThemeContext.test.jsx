@@ -1,5 +1,11 @@
 import React from "react";
-import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  act,
+  waitFor,
+} from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider_Custom, useAppTheme } from "../ThemeContext";
 
@@ -173,7 +179,9 @@ describe("ThemeContext", () => {
   });
 
   it("throws when useAppTheme is used outside ThemeProvider_Custom", () => {
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
     function OutsideConsumer() {
       useAppTheme();

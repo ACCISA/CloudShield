@@ -109,6 +109,7 @@ describe("Sidebar", () => {
     mockNavigate.mockClear();
     mockLogout.mockClear();
     mockPathname = "/";
+    localStorage.clear();
 
     // Keep Sidebar stable: use default labels by returning matching data
     apiGet.mockReset();

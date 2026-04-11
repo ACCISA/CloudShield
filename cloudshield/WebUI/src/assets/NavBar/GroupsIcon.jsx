@@ -4,7 +4,7 @@ export default function GroupsIcon({
   height = 12,
   className = "",
 }) {
-  const color = selected ? "#fff" : "#BCBCBC";
+  const color = selected ? "var(--sidebar-icon-active)" : "#BCBCBC";
   const fill = selected ? color : "#BCBCBC";
 
   return (

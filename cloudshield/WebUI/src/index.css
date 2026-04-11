@@ -29,6 +29,10 @@
   --border-light: rgba(255, 255, 255, 0.08);
   --lightOverlaySubtle: rgba(255, 255, 255, 0.03);
   --lightOverlay: rgba(255, 255, 255, 0.08);
+  --bg-sidebar: #0a0a0a;
+  --sidebar-icon-active: #ffffff;
+  --checkbox-checked-bg: #ffffff;
+  --checkbox-checkmark-color: #000000;
 
   /* App defaults */
   text-rendering: optimizeLegibility;
@@ -40,20 +44,24 @@
 @media (prefers-color-scheme: light) {
   :root {
     --bg-primary: #ffffff;
-    --bg-secondary: #f5f5f5;
-    --text-primary: #000000;
-    --text-secondary: #666666;
-    --divider: rgba(0, 0, 0, 0.12);
-    --action-hover: rgba(0, 0, 0, 0.08);
-    --action-selected: rgba(0, 0, 0, 0.12);
-    --accent-color: #000000;
-    --input-bg: #f5f5f5;
-    --input-border: rgba(0, 0, 0, 0.16);
+    --bg-secondary: #ffffff;
+    --bg-sidebar: #f0f1f4;
+    --sidebar-icon-active: #3b82f6;
+    --checkbox-checked-bg: #1f2937;
+    --checkbox-checkmark-color: #f9fafb;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --divider: rgba(0, 0, 0, 0.08);
+    --action-hover: rgba(0, 0, 0, 0.06);
+    --action-selected: rgba(0, 0, 0, 0.08);
+    --accent-color: #111827;
+    --input-bg: #f9fafb;
+    --input-border: rgba(0, 0, 0, 0.14);
     --card-border: rgba(0, 0, 0, 0.08);
-    --border: rgba(0, 0, 0, 0.16);
-    --border-light: rgba(0, 0, 0, 0.08);
+    --border: rgba(0, 0, 0, 0.14);
+    --border-light: rgba(0, 0, 0, 0.1);
     --lightOverlaySubtle: rgba(0, 0, 0, 0.03);
-    --lightOverlay: rgba(0, 0, 0, 0.08);
+    --lightOverlay: rgba(0, 0, 0, 0.06);
   }
 }
 

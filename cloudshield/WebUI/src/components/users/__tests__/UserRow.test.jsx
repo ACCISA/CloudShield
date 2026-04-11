@@ -241,7 +241,7 @@ describe("UserRow", () => {
   it("shows correct outer color for online status", () => {
     render(<UserRow {...defaultProps} />);
     const icon = screen.getByTestId("active-icon");
-    expect(icon.dataset.outer).toBe("#1F381F");
+    expect(icon.dataset.outer).toBe("rgba(4, 196, 10, 0.2)");
   });
 
   it("shows correct outer color for offline status", () => {
@@ -249,7 +249,7 @@ describe("UserRow", () => {
     render(<UserRow {...defaultProps} data={offlineData} />);
 
     const icon = screen.getByTestId("active-icon");
-    expect(icon.dataset.outer).toBe("#381F1F");
+    expect(icon.dataset.outer).toBe("rgba(255, 82, 82, 0.2)");
   });
 
   it("hides workstations column when showWorkstations is false", () => {

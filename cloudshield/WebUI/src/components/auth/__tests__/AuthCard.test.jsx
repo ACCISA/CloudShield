@@ -13,14 +13,14 @@ describe('AuthCard', () => {
   });
 
   it('displays the CloudShield logo', () => {
-    render(
+    const { container } = render(
       <AuthCard>
         <div>Content</div>
       </AuthCard>
     );
-    const logo = screen.getByAltText('CloudShield');
+    const logo = container.querySelector('.auth-card__logo');
     expect(logo).toBeInTheDocument();
-    expect(logo.getAttribute('src')).toContain('cloudshield_logo_black.png');
+    expect(logo.tagName.toLowerCase()).toBe('svg');
   });
 
   it('displays the login title and subtitle', () => {

@@ -124,22 +124,38 @@ export const SECURITY_FILTERS = [
 // Add this export to: cloudshield/WebUI/src/config/filterConfigs.js
 
 export const TICKET_FILTERS = [
-    {
-        id: "priority",
-        label: "Priority",
-        options: [
-            { value: "High",   label: "High" },
-            { value: "Medium", label: "Medium" },
-            { value: "Low",    label: "Low" },
-        ],
-    },
-    {
-        id: "status",
-        label: "Status",
-        options: [
-            { value: "Open",    label: "Open" },
-            { value: "Pending", label: "Pending" },
-            { value: "Closed",  label: "Closed" },
-        ],
-    },
+  {
+    id: "priority",
+    label: "Priority",
+    options: [
+      { value: "High", label: "High" },
+      { value: "Medium", label: "Medium" },
+      { value: "Low", label: "Low" },
+    ],
+  },
+  {
+    id: "status",
+    label: "Status",
+    options: [
+      { value: "Open", label: "Open" },
+      { value: "Pending", label: "Pending" },
+      { value: "Closed", label: "Closed" },
+    ],
+  },
+];
+
+export const NOTIFICATION_FILTERS = [
+  createFilter("type", "Type", [
+    { value: "security", label: "Security" },
+    { value: "account", label: "Account" },
+    { value: "system", label: "System" },
+  ]),
+];
+
+export const BILLING_FILTERS = [
+  createFilter("status", "Status", [
+    { value: "paid", label: "Paid" },
+    { value: "open", label: "Open" },
+    { value: "failed", label: "Failed" },
+  ]),
 ];

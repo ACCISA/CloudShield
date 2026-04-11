@@ -91,7 +91,7 @@ export default function SearchField({
         onChange(newValue);
       }
     },
-    [debounceMs, onChange]
+    [debounceMs, onChange],
   );
 
   // Check if mobile (simplified without MUI)
@@ -110,18 +110,21 @@ export default function SearchField({
     display: "flex",
     alignItems: "center",
     width: getWidth(),
-    backgroundColor: isFocused ? themeColors.bgHover : isHovered ? themeColors.bgHover : themeColors.secondary,
+    backgroundColor: isFocused
+      ? themeColors.bgHover
+      : isHovered
+        ? themeColors.bgHover
+        : themeColors.secondary,
     borderRadius: "8px",
     border: isFocused
       ? `1px solid ${themeColors.border}`
       : isHovered
-      ? `1px solid ${themeColors.border}`
-      : `1px solid ${themeColors.borderLight}`,
+        ? `1px solid ${themeColors.border}`
+        : `1px solid ${themeColors.borderLight}`,
     padding: "12px 24px",
     height: "48px",
     boxSizing: "border-box",
     transition: "all 0.2s ease",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
     ...style,
   };
 

@@ -106,13 +106,21 @@ export default function StatCard({
             onClick={onAdd}
             sx={{
               color: themeColors.text,
-              backgroundColor: "rgba(255, 255, 255, 0.12)",
-              border: "1px solid rgba(255, 255, 255, 0.16)",
+              backgroundColor: themeColors.isLight
+                ? "rgba(0, 0, 0, 0.06)"
+                : "rgba(255, 255, 255, 0.12)",
+              border: `1px solid ${
+                themeColors.isLight
+                  ? "rgba(0, 0, 0, 0.10)"
+                  : "rgba(255, 255, 255, 0.16)"
+              }`,
               borderRadius: "8px",
               width: 36,
               height: 36,
               "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                backgroundColor: themeColors.isLight
+                  ? "rgba(0, 0, 0, 0.10)"
+                  : "rgba(255, 255, 255, 0.2)",
               },
             }}
           >
@@ -149,7 +157,7 @@ export default function StatCard({
       {error && (
         <Typography
           sx={{
-            color: "rgba(255, 255, 255, 0.9)",
+            color: themeColors.textSecondary,
             fontSize: "0.75rem",
             fontWeight: 400,
             marginTop: "-8px",

@@ -42,9 +42,6 @@ const CreateButton = ({
     fontWeight: "500",
     color: isLightVariant ? "#111111" : themeColors.secondaryText,
     transition: "all 0.2s ease",
-    boxShadow: isLightVariant
-      ? "0 2px 8px rgba(0, 0, 0, 0.12)"
-      : "0 2px 8px rgba(0, 0, 0, 0.3)",
     opacity: disabled ? 0.4 : 1,
   };
 
@@ -54,9 +51,8 @@ const CreateButton = ({
       e.currentTarget.style.borderColor = "rgba(0, 0, 0, 0.22)";
       return;
     }
-
-    e.currentTarget.style.background = "#242424";
-    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
+    e.currentTarget.style.background = themeColors.secondaryHover;
+    e.currentTarget.style.borderColor = themeColors.secondaryBorder;
   };
 
   const handleMouseLeave = (e) => {
@@ -65,9 +61,8 @@ const CreateButton = ({
       e.currentTarget.style.borderColor = "rgba(0, 0, 0, 0.14)";
       return;
     }
-
-    e.currentTarget.style.background = "#1a1a1a";
-    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
+    e.currentTarget.style.background = themeColors.secondary;
+    e.currentTarget.style.borderColor = themeColors.secondaryBorder;
   };
 
   return (
