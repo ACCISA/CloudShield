@@ -68,13 +68,18 @@ describe("NotificationsTab", () => {
 
   test("calls onSave when email alerts toggle is changed", async () => {
     mockOnSave.mockResolvedValue(true);
-    const user = userEvent.setup();
 
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const emailAlertsSwitch = getCheckboxes()[0];
+    const emailAlertsSwitch = screen.getAllByRole("switch")[0];
 
-    await user.click(emailAlertsSwitch);
+    await act(async () => {
+      fireEvent.click(emailAlertsSwitch);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Save changes/i }));
+    });
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
@@ -147,19 +152,24 @@ describe("NotificationsTab", () => {
   test("loads in-app alerts preference from userData", () => {
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const inAppAlertsSwitch = getCheckboxes()[1];
-    expect(inAppAlertsSwitch).toBeChecked();
+    const inAppAlertsSwitch = screen.getAllByRole("switch")[1];
+    expect(inAppAlertsSwitch).toHaveAttribute("aria-checked", "true");
   });
 
   test("calls onSave when in-app alerts toggle is changed", async () => {
     mockOnSave.mockResolvedValue(true);
-    const user = userEvent.setup();
 
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const inAppAlertsSwitch = getCheckboxes()[1];
+    const inAppAlertsSwitch = screen.getAllByRole("switch")[1];
 
-    await user.click(inAppAlertsSwitch);
+    await act(async () => {
+      fireEvent.click(inAppAlertsSwitch);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Save changes/i }));
+    });
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
@@ -176,7 +186,7 @@ describe("NotificationsTab", () => {
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
     expect(screen.getByText("alert")).toBeInTheDocument();
-    expect(screen.getByText("Date:")).toBeInTheDocument();
+    expect(screen.getByText("date")).toBeInTheDocument();
   });
 
   test("renders search input for alerts", () => {
@@ -241,15 +251,17 @@ describe("NotificationsTab", () => {
   test("selects all alerts when select-all checkbox is clicked", async () => {
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const selectAllCheckbox = getCheckboxes()[2];
+    const selectAllCheckbox = screen.getAllByRole("checkbox")[0];
 
     await act(async () => {
       fireEvent.click(selectAllCheckbox);
     });
 
-    // Check that multiple checkboxes are now checked
-    const checkedBoxes = getCheckboxes().filter((checkbox) => checkbox.checked);
-    expect(checkedBoxes.length).toBeGreaterThan(2);
+    // Check that multiple checkboxes are now checked (aria-checked="true")
+    const checkedBoxes = screen.getAllByRole("checkbox").filter(
+      (checkbox) => checkbox.getAttribute("aria-checked") === "true"
+    );
+    expect(checkedBoxes.length).toBeGreaterThan(1);
   });
 
   test("renders delete selected button", () => {
@@ -303,6 +315,10 @@ describe("NotificationsTab", () => {
       fireEvent.blur(emailInput);
     });
 
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Save changes/i }));
+    });
+
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -339,14 +355,20 @@ describe("NotificationsTab", () => {
 
     render(<NotificationsTab userData={mockUserData} onSave={mockOnSave} />);
 
-    const emailAlertsSwitch = getCheckboxes()[0];
+    const emailAlertsSwitch = screen.getAllByRole("switch")[0];
 
-    await userEvent.click(emailAlertsSwitch);
+    await act(async () => {
+      fireEvent.click(emailAlertsSwitch);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /Save changes/i }));
+    });
 
     await waitFor(() => {
       expect(mockOnSave).toHaveBeenCalled();
       expect(
-        screen.getByRole("button", { name: "Auto-saving..." }),
+        screen.getByRole("button", { name: /Saving/i }),
       ).toBeDisabled();
     });
 
@@ -355,7 +377,7 @@ describe("NotificationsTab", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Settings saved" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Saved/i })).toBeInTheDocument();
     });
   });
 

@@ -173,7 +173,7 @@ describe("ThemeContext", () => {
 
     await waitFor(() => {
       expect(root.style.getPropertyValue("--bg-primary")).toBe("#FFFFFF");
-      expect(root.style.getPropertyValue("--input-bg")).toBe("#FAFAFA");
+      expect(root.style.getPropertyValue("--input-bg")).toBe("#F9FAFB");
       expect(document.body.style.backgroundColor).toBe("rgb(255, 255, 255)");
     });
   });

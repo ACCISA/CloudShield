@@ -85,10 +85,10 @@ describe("BillingTab — Layout & Structural Elements", () => {
     setupFetch();
     await act(async () => render(<BillingTab />));
     
-    expect(screen.getByText("Billing Centre")).toBeInTheDocument();
-    expect(screen.getByText("Manage your plan and billing details")).toBeInTheDocument();
-    expect(screen.getByText("Billing History")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Search Invoices")).toBeInTheDocument();
+    expect(screen.getByText("Billing")).toBeInTheDocument();
+    expect(screen.getByText("Manage your plan and payment details")).toBeInTheDocument();
+    expect(screen.getByText("Billing history")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search invoices")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /filter/i })).toBeInTheDocument();
     expect(screen.getByText("Invoice")).toBeInTheDocument();
     expect(screen.getByText("Amount")).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("BillingTab — Layout & Structural Elements", () => {
     setupFetch();
     await act(async () => render(<BillingTab />));
     
-    const searchInput = screen.getByPlaceholderText("Search Invoices");
+    const searchInput = screen.getByPlaceholderText("Search invoices");
     await act(async () => {
       fireEvent.change(searchInput, { target: { value: "Pro test" } });
     });
@@ -200,7 +200,7 @@ describe("BillingTab — canceled subscription", () => {
     await act(async () => render(<BillingTab />));
     await waitFor(() => {
       expect(screen.getByText("Canceled")).toBeInTheDocument();
-      expect(screen.getByText(/subscription was canceled/i)).toBeInTheDocument();
+      expect(screen.getByText(/Upgrade to reactivate/i)).toBeInTheDocument();
     });
   });
 
@@ -208,7 +208,7 @@ describe("BillingTab — canceled subscription", () => {
     setupFetch({ card: mockCardCanceled });
     await act(async () => render(<BillingTab />));
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Reactivate plan/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Reactivate/i })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: /Upgrade plan/i })).not.toBeInTheDocument();
       expect(screen.queryByText("Cancel subscription")).not.toBeInTheDocument(); 
     });

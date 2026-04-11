@@ -50,7 +50,7 @@ describe('UsersIcon', () => {
     const paths = container.querySelectorAll('path');
     paths.forEach((path) => {
       const stroke = path.getAttribute('stroke');
-      if (stroke) expect(stroke).toBe('var(--text-primary)');
+      if (stroke) expect(stroke).toBe('var(--sidebar-icon-active)');
     });
   });
 

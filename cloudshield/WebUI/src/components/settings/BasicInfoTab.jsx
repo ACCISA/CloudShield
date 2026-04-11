@@ -284,6 +284,7 @@ export default function BasicInfoTab({ userData, onSave, orgData, onOrgSave }) {
           />
           <div>
             <input
+              aria-label="Admin Name"
               placeholder="Admin Name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -444,6 +445,7 @@ export default function BasicInfoTab({ userData, onSave, orgData, onOrgSave }) {
         />
         <div style={{ flex: 1 }}>
           <input
+            aria-label="Email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -494,6 +496,7 @@ export default function BasicInfoTab({ userData, onSave, orgData, onOrgSave }) {
         <div style={{ display: "flex", gap: 16, flex: 1 }}>
           <div style={{ flex: 1 }}>
             <input
+              aria-label="New password"
               placeholder="New password"
               type="password"
               value={newPassword}
@@ -519,6 +522,7 @@ export default function BasicInfoTab({ userData, onSave, orgData, onOrgSave }) {
           </div>
           <div style={{ flex: 1 }}>
             <input
+              aria-label="Confirm password"
               placeholder="Confirm password"
               type="password"
               value={confirmPassword}

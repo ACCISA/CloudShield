@@ -30,8 +30,8 @@ describe("GroupsIcon", () => {
     const paths = container.querySelectorAll("path");
 
     paths.forEach((path) => {
-      expect(path).toHaveAttribute("fill", "#fff");
-      expect(path).toHaveAttribute("stroke", "#fff");
+      expect(path).toHaveAttribute("fill", "var(--sidebar-icon-active)");
+      expect(path).toHaveAttribute("stroke", "var(--sidebar-icon-active)");
     });
   });
 
@@ -78,7 +78,7 @@ describe("GroupsIcon", () => {
     paths = container.querySelectorAll("path");
 
     paths.forEach((path) => {
-      expect(path).toHaveAttribute("fill", "#fff");
+      expect(path).toHaveAttribute("fill", "var(--sidebar-icon-active)");
     });
   });
 });

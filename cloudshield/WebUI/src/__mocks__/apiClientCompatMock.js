@@ -58,6 +58,7 @@ async function request(path, { method = "GET", body, headers, ...rest } = {}) {
       path === "/organizations/me" ||
       path.startsWith("/access-groups") ||
       path.startsWith("/file_shares") ||
+      path.startsWith("/workstations") ||
       /^\/organizations\/[^/]+\/users/.test(path));
 
   // Some call sites expect a Fetch Response contract (res.ok/res.status/res.json/res.text).

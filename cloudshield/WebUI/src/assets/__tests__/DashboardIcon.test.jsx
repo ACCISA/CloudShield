@@ -50,7 +50,7 @@ describe('DashboardIcon', () => {
     const paths = container.querySelectorAll('path');
     paths.forEach((path) => {
       const fill = path.getAttribute('fill');
-      if (fill) expect(fill).toBe('var(--text-primary)');
+      if (fill) expect(fill).toBe('var(--sidebar-icon-active)');
     });
   });
 

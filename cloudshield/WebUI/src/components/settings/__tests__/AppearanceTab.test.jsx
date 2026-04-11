@@ -60,8 +60,7 @@ describe("AppearanceTab", () => {
     render(<AppearanceTab />);
 
     fireEvent.click(screen.getByText("Always use light appearance"));
-    fireEvent.mouseDown(screen.getByRole("combobox"));
-    fireEvent.click(screen.getByText(/Français \(France\)/));
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "fr-FR" } });
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(mockUpdateTheme).toHaveBeenCalledWith("light");
