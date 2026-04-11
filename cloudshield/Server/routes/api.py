@@ -833,6 +833,25 @@ def health():
     payload, code = health_status()
     return jsonify(payload), code
 
+def _serialize_org(doc):
+    """Return the canonical organization payload dict for a MongoDB doc."""
+    return {
+        "id": str(doc.get("_id")),
+        "name": doc.get("name"),
+        "logo": doc.get("logo"),
+        "package": doc.get("package"),
+        "domain_name": doc.get("domain_name"),
+        "realm_name": doc.get("realm_name"),
+        "workstation_limit": doc.get("workstation_limit"),
+        "user_limit": doc.get("user_limit"),
+        "storage_limit_gb": doc.get("storage_limit_gb"),
+        "provisioning_status": doc.get("provisioning_status"),
+        "provisioning_job_id": doc.get("provisioning_job_id"),
+        "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
+        "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
+    }
+
+
 @api_bp.route("/organizations/me", methods=["GET"])
 @require_auth
 def get_my_organization():
@@ -859,23 +878,7 @@ def get_my_organization():
     if not doc:
         return jsonify({"error": "Organization not found"}), 404
 
-    return jsonify({
-        "organization": {
-            "id": str(doc.get("_id")),
-            "name": doc.get("name"),
-            "logo": doc.get("logo"),
-            "package": doc.get("package"),
-            "domain_name": doc.get("domain_name"),
-            "realm_name": doc.get("realm_name"),
-            "workstation_limit": doc.get("workstation_limit"),
-            "user_limit": doc.get("user_limit"),
-            "storage_limit_gb": doc.get("storage_limit_gb"),
-            "provisioning_status": doc.get("provisioning_status"),
-            "provisioning_job_id": doc.get("provisioning_job_id"),
-            "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
-            "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
-        }
-    }), 200
+    return jsonify({"organization": _serialize_org(doc)}), 200
 
 @api_bp.route("/organizations/me", methods=["PATCH"])
 @require_auth
@@ -948,23 +951,7 @@ def update_my_organization():
     if not doc:
         return jsonify({"error": "Organization not found"}), 404
 
-    return jsonify({
-        "organization": {
-            "id": str(doc.get("_id")),
-            "name": doc.get("name"),
-            "logo": doc.get("logo"),
-            "package": doc.get("package"),
-            "domain_name": doc.get("domain_name"),
-            "realm_name": doc.get("realm_name"),
-            "workstation_limit": doc.get("workstation_limit"),
-            "user_limit": doc.get("user_limit"),
-            "storage_limit_gb": doc.get("storage_limit_gb"),
-            "provisioning_status": doc.get("provisioning_status"),
-            "provisioning_job_id": doc.get("provisioning_job_id"),
-            "created_at": doc.get("created_at").isoformat() if doc.get("created_at") else None,
-            "updated_at": doc.get("updated_at").isoformat() if doc.get("updated_at") else None,
-        }
-    }), 200
+    return jsonify({"organization": _serialize_org(doc)}), 200
 
 @api_bp.route("/organizations/me/metrics", methods=["GET"])
 @require_auth

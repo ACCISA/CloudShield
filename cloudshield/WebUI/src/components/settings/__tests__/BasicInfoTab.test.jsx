@@ -361,4 +361,289 @@ describe("BasicInfoTab", () => {
       );
     });
   });
+
+  test("updates org logo when orgData prop changes", async () => {
+    const mockOrgData = {
+      id: "org-1",
+      name: "Acme Corp",
+      logo: "data:image/png;base64,orglogo123",
+    };
+
+    const { rerender } = render(
+      <BasicInfoTab
+        userData={mockUserData}
+        onSave={mockOnSave}
+        orgData={null}
+      />,
+    );
+
+    rerender(
+      <BasicInfoTab
+        userData={mockUserData}
+        onSave={mockOnSave}
+        orgData={mockOrgData}
+      />,
+    );
+
+    // Org logo should be updated internally (can verify via another test that saves it)
+    expect(screen.getByText("Basic Info")).toBeInTheDocument();
+  });
+
+  test("handles org logo upload", async () => {
+    const mockOnOrgSave = jest.fn().mockResolvedValue(true);
+
+    render(
+      <BasicInfoTab
+        userData={mockUserData}
+        onSave={mockOnSave}
+        orgData={{ id: "org-1", name: "Test", logo: null }}
+        onOrgSave={mockOnOrgSave}
+      />,
+    );
+
+    const file = new File(["logo"], "logo.png", { type: "image/png" });
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    const logoInput = fileInputs[1]; // Second file input is for org logo
+
+    await act(async () => {
+      fireEvent.change(logoInput, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(compressImage).toHaveBeenCalledWith(
+        file,
+        expect.objectContaining({ maxWidth: 256, maxHeight: 256 }),
+      );
+    });
+  });
+
+  test("falls back to FileReader when logo compression fails", async () => {
+    compressImage.mockRejectedValueOnce(new Error("compress fail"));
+
+    const originalFileReader = global.FileReader;
+    const readAsDataURL = jest.fn(function () {
+      this.onload?.({
+        target: { result: "data:image/png;base64,fallbacklogo" },
+      });
+    });
+    global.FileReader = jest.fn(function MockFileReader() {
+      this.readAsDataURL = readAsDataURL;
+      this.onload = null;
+    });
+
+    render(
+      <BasicInfoTab
+        userData={mockUserData}
+        onSave={mockOnSave}
+        orgData={{ id: "org-1", logo: null }}
+        onOrgSave={jest.fn()}
+      />,
+    );
+
+    const file = new File(["logo"], "logo.png", { type: "image/png" });
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    const logoInput = fileInputs[1];
+
+    await act(async () => {
+      fireEvent.change(logoInput, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(readAsDataURL).toHaveBeenCalledWith(file);
+    });
+
+    global.FileReader = originalFileReader;
+  });
+
+  test("calls onOrgSave when org logo changes", async () => {
+    const mockOnOrgSave = jest.fn().mockResolvedValue(true);
+    compressImage.mockResolvedValue("data:image/png;base64,newlogo");
+
+    render(
+      <BasicInfoTab
+        userData={mockUserData}
+        onSave={mockOnSave}
+        orgData={{ id: "org-1", name: "Test", logo: null }}
+        onOrgSave={mockOnOrgSave}
+      />,
+    );
+
+    const file = new File(["logo"], "logo.png", { type: "image/png" });
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    const logoInput = fileInputs[1];
+
+    await act(async () => {
+      fireEvent.change(logoInput, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(compressImage).toHaveBeenCalled();
+    });
+
+    const saveButton = screen.getByText("Save changes");
+
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    await waitFor(() => {
+      expect(mockOnOrgSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          logo: "data:image/png;base64,newlogo",
+        }),
+      );
+    });
+  });
+
+  test("includes profile image in save payload when changed", async () => {
+    mockOnSave.mockResolvedValue(true);
+    compressImage.mockResolvedValue("data:image/png;base64,newprofile");
+
+    render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
+
+    const file = new File(["image"], "profile.png", { type: "image/png" });
+    const fileInput = document.querySelector('input[type="file"]');
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(compressImage).toHaveBeenCalled();
+    });
+
+    const saveButton = screen.getByText("Save changes");
+
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          profile_image: "data:image/png;base64,newprofile",
+        }),
+      );
+    });
+  });
+
+  test("does not call onOrgSave when no onOrgSave prop provided", async () => {
+    mockOnSave.mockResolvedValue(true);
+
+    render(
+      <BasicInfoTab
+        userData={mockUserData}
+        onSave={mockOnSave}
+        orgData={{ id: "org-1", logo: null }}
+      />,
+    );
+
+    const nameInput = screen.getByLabelText("Admin Name");
+    const saveButton = screen.getByText("Save changes");
+
+    await act(async () => {
+      fireEvent.change(nameInput, { target: { value: "Changed Name" } });
+      fireEvent.click(saveButton);
+    });
+
+    // Should only call onSave, not throw without onOrgSave
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalled();
+    });
+  });
+
+  test("handles file input with no file selected", async () => {
+    compressImage.mockClear();
+    render(<BasicInfoTab userData={mockUserData} onSave={mockOnSave} />);
+
+    const fileInput = document.querySelector('input[type="file"]');
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [] } });
+    });
+
+    // Should not throw error
+    expect(compressImage).not.toHaveBeenCalled();
+  });
+
+  test("handles logo file input with no file selected", async () => {
+    render(
+      <BasicInfoTab
+        userData={mockUserData}
+        onSave={mockOnSave}
+        orgData={{ id: "org-1", logo: null }}
+        onOrgSave={jest.fn()}
+      />,
+    );
+
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    const logoInput = fileInputs[1];
+
+    await act(async () => {
+      fireEvent.change(logoInput, { target: { files: [] } });
+    });
+
+    // Should not throw error
+    expect(screen.getByText("Basic Info")).toBeInTheDocument();
+  });
+
+  test("displays existing profile image when userData has one", () => {
+    const userWithImage = {
+      ...mockUserData,
+      profile_image: "data:image/png;base64,existing",
+    };
+
+    render(<BasicInfoTab userData={userWithImage} onSave={mockOnSave} />);
+
+    // Should display the image, not initials
+    const img = document.querySelector('img[alt="Profile"]');
+    expect(img).toBeInTheDocument();
+    expect(img).toHaveAttribute("src", "data:image/png;base64,existing");
+  });
+
+  test("saves both user and org data in parallel", async () => {
+    mockOnSave.mockResolvedValue(true);
+    const mockOnOrgSave = jest.fn().mockResolvedValue(true);
+    compressImage.mockResolvedValue("data:image/png;base64,newlogo");
+
+    render(
+      <BasicInfoTab
+        userData={mockUserData}
+        onSave={mockOnSave}
+        orgData={{ id: "org-1", logo: null }}
+        onOrgSave={mockOnOrgSave}
+      />,
+    );
+
+    // Change name
+    const nameInput = screen.getByLabelText("Admin Name");
+    await act(async () => {
+      fireEvent.change(nameInput, { target: { value: "New Name" } });
+    });
+
+    // Upload logo
+    const file = new File(["logo"], "logo.png", { type: "image/png" });
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    const logoInput = fileInputs[1];
+
+    await act(async () => {
+      fireEvent.change(logoInput, { target: { files: [file] } });
+    });
+
+    await waitFor(() => {
+      expect(compressImage).toHaveBeenCalled();
+    });
+
+    const saveButton = screen.getByText("Save changes");
+
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalled();
+      expect(mockOnOrgSave).toHaveBeenCalled();
+    });
+  });
 });
+

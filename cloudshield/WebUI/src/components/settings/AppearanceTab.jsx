@@ -250,7 +250,15 @@ export default function AppearanceTab() {
             return (
               <div
                 key={value}
+                role="button"
+                tabIndex={0}
                 onClick={() => setSelectedTheme(value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedTheme(value);
+                  }
+                }}
                 style={{
                   flex: 1,
                   border: `2px solid ${isSelected ? "var(--accent-color)" : isPreviewing ? "rgba(255,152,0,0.5)" : themeColors.borderLight}`,

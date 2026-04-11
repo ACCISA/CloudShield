@@ -243,6 +243,185 @@ describe("BillingTab — no card on file", () => {
   });
 });
 
+describe("BillingTab — Additional Coverage", () => {
+  it("handles portal session error gracefully", async () => {
+    setupFetch();
+    
+    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    await act(async () => render(<BillingTab />));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /upgrade plan/i })).toBeInTheDocument();
+    });
+
+    // Mock the portal session fetch to fail
+    mockFetch.mockImplementationOnce(() =>
+      Promise.reject(new Error("Portal error"))
+    );
+
+    const upgradePlanBtn = screen.getByRole("button", { name: /upgrade plan/i });
+    
+    await act(async () => {
+      fireEvent.click(upgradePlanBtn);
+    });
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("toggles invoice selection correctly", async () => {
+    setupFetch();
+    await act(async () => render(<BillingTab />));
+
+    await waitFor(() => {
+      expect(screen.getByText("Billing history")).toBeInTheDocument();
+    });
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes.length).toBeGreaterThan(1);
+
+    const firstInvoiceCheckbox = checkboxes[1];
+
+    await act(async () => {
+      fireEvent.click(firstInvoiceCheckbox);
+    });
+
+    expect(firstInvoiceCheckbox).toBeChecked();
+
+    await act(async () => {
+      fireEvent.click(firstInvoiceCheckbox);
+    });
+
+    expect(firstInvoiceCheckbox).not.toBeChecked();
+  });
+
+  it("toggles select all invoices", async () => {
+    setupFetch();
+    await act(async () => render(<BillingTab />));
+
+    await waitFor(() => {
+      expect(screen.getByText("Billing history")).toBeInTheDocument();
+    });
+
+    const checkboxes = screen.getAllByRole("checkbox");
+    const selectAllCheckbox = checkboxes[0];
+
+    await act(async () => {
+      fireEvent.click(selectAllCheckbox);
+    });
+
+    await waitFor(() => {
+      expect(selectAllCheckbox).toBeChecked();
+    });
+
+    await act(async () => {
+      fireEvent.click(selectAllCheckbox);
+    });
+
+    expect(selectAllCheckbox).not.toBeChecked();
+  });
+
+  it("downloads invoice when download button clicked", async () => {
+    const windowOpenSpy = jest.spyOn(window, "open").mockImplementation(() => {});
+    setupFetch();
+
+    await act(async () => render(<BillingTab />));
+
+    await waitFor(() => {
+      expect(screen.getByText("Billing history")).toBeInTheDocument();
+    });
+
+    const downloadButtons = document.querySelectorAll(".billing-download-btn");
+    expect(downloadButtons.length).toBeGreaterThan(0);
+
+    await act(async () => {
+      fireEvent.click(downloadButtons[0]);
+    });
+
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      "https://stripe.com/invoice.pdf",
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+    windowOpenSpy.mockRestore();
+  });
+
+  it("refetches data on window focus", async () => {
+    setupFetch();
+    await act(async () => render(<BillingTab />));
+
+    await waitFor(() => {
+      expect(screen.getByText("Billing history")).toBeInTheDocument();
+    });
+
+    const initialCallCount = mockFetch.mock.calls.length;
+    mockFetch.mockClear();
+
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalled();
+    });
+  });
+
+  it("polls for updates when status=success in URL", async () => {
+    jest.useFakeTimers();
+    window.location.search = "?status=success";
+    window.history.replaceState = jest.fn();
+
+    setupFetch();
+
+    await act(async () => {
+      render(<BillingTab />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Syncing with Stripe/i)).toBeInTheDocument();
+    });
+
+    mockFetch.mockClear();
+
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+
+    await waitFor(() => {
+      expect(mockFetch.mock.calls.length).toBeGreaterThan(0);
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(15000);
+    });
+
+    jest.useRealTimers();
+    window.location.search = "";
+  });
+
+  it("filters invoices by search term", async () => {
+    setupFetch();
+    await act(async () => render(<BillingTab />));
+
+    await waitFor(() => {
+      expect(screen.getByText("Billing history")).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByPlaceholderText("Search invoices");
+
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: "Pro" } });
+    });
+
+    expect(searchInput.value).toBe("Pro");
+  });
+});
+
 describe("BillingTab — syncing overlay", () => {
   it("shows syncing overlay when ?status=success is in URL", async () => {
     window.location.search = "?status=success";

@@ -62,6 +62,10 @@ const DARK_PALETTE = {
 
 // Create theme with component overrides
 const createAppTheme = (palette) => {
+  const inputBg = palette.mode === "dark" ? "#161616" : "#FAFAFA";
+  const inputBorder =
+    palette.mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)";
+
   return createTheme({
     palette,
     shape: {
@@ -87,24 +91,21 @@ const createAppTheme = (palette) => {
       MuiTextField: {
         styleOverrides: {
           root: {
-            backgroundColor: palette.mode === "dark" ? "#161616" : "#FAFAFA",
+            backgroundColor: inputBg,
             borderRadius: "8px",
-            border: `1px solid ${palette.mode === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.18)"}`,
+            border: `1px solid ${inputBorder}`,
           },
         },
       },
       MuiOutlinedInput: {
         styleOverrides: {
           root: {
-            backgroundColor: palette.mode === "dark" ? "#161616" : "#FAFAFA",
+            backgroundColor: inputBg,
             borderRadius: "8px",
             color: palette.text.primary,
           },
           notchedOutline: {
-            borderColor:
-              palette.mode === "dark"
-                ? "rgba(255,255,255,0.18)"
-                : "rgba(0,0,0,0.18)",
+            borderColor: inputBorder,
           },
           input: {
             fontSize: "0.95rem",
@@ -164,6 +165,9 @@ const createAppTheme = (palette) => {
   });
 };
 
+const getPalette = (theme) =>
+  theme === "dark" ? DARK_PALETTE : LIGHT_PALETTE;
+
 const ThemeContext = createContext();
 
 export const ThemeProvider_Custom = ({ children }) => {
@@ -211,13 +215,12 @@ export const ThemeProvider_Custom = ({ children }) => {
 
   // Create MUI theme
   const muiTheme = useMemo(() => {
-    const palette = effectiveTheme === "dark" ? DARK_PALETTE : LIGHT_PALETTE;
-    return createAppTheme(palette);
+    return createAppTheme(getPalette(effectiveTheme));
   }, [effectiveTheme]);
 
   // Update CSS variables for non-MUI components
   useEffect(() => {
-    const palette = effectiveTheme === "dark" ? DARK_PALETTE : LIGHT_PALETTE;
+    const palette = getPalette(effectiveTheme);
     const root = document.documentElement;
 
     // Primary colors
