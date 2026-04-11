@@ -824,13 +824,14 @@ def test_seed_workstations(mock_db_admin):
 # GET /api/organization/<org_id> - Additional Coverage
 # ---------------------------------------------------------------------------
 
-@patch("cloudshield.Server.routes.api.organizations")
-def test_get_organization_invalid_id(mock_orgs, client):
+def test_get_organization_invalid_id(client):
     """GET /api/organization with invalid ObjectId format should return 400."""
-    mock_orgs.find_one.return_value = None  # Configure mock even though InvalidId is raised first
-    resp = client.get("/api/organization/invalid_id_format")
-    assert resp.status_code == 400
-    assert "Invalid organization ID format" in resp.get_json()["error"]
+    with patch("bson.ObjectId") as mock_oid:
+        from bson.errors import InvalidId
+        mock_oid.side_effect = InvalidId("invalid ID")
+        resp = client.get("/api/organization/invalid_id_format")
+        assert resp.status_code == 400
+        assert "Invalid organization ID format" in resp.get_json()["error"]
 
 
 @patch("cloudshield.Server.routes.api.organizations")
