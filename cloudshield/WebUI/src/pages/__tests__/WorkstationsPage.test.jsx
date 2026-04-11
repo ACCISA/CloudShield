@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import WorkstationsPage, { createWorkstationTemplate } from "../WorkstationsPage";
@@ -77,6 +77,7 @@ jest.mock("../../components/workstations/WorkstationList.jsx", () => ({
             onChange={() => onToggleSelect?.(row.id)}
           />
           <span>{row.name}</span>
+          <span data-testid={`status-${row.id}`}>{row.status}</span>
           <button data-testid={`edit-${row.id}`} onClick={() => onEdit?.(row)}>
             Edit
           </button>
@@ -177,6 +178,14 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+const flushPollInterval = async () => {
+  await act(async () => {
+    jest.advanceTimersByTime(2000);
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+};
+
 describe("createWorkstationTemplate", () => {
 
   beforeEach(() => {
@@ -231,6 +240,13 @@ describe("WorkstationsPage", () => {
         usersCount: 0,
       },
     ]);
+    clientApi.apiPost.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        job_id: "job-1",
+        template_id: "tmpl-1",
+      }),
+    });
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       json: jest.fn().mockResolvedValue({ id: "new" }),
@@ -284,6 +300,111 @@ describe("WorkstationsPage", () => {
     await waitFor(() =>
       expect(screen.getByText("Created WS")).toBeInTheDocument(),
     );
+    expect(screen.getByTestId("status-tmpl-1")).toHaveTextContent("building");
+  });
+
+  test("marks the created row failed when the job progress reports failure", async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+
+    clientApi.apiPost.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        job_id: "job-failed",
+        template_id: "tmpl-failed",
+      }),
+    });
+    clientApi.apiGet.mockResolvedValueOnce({
+      json: jest.fn().mockResolvedValue({
+        job_id: "job-failed",
+        status: "finished",
+        progress: "failed",
+        result: null,
+      }),
+    });
+
+    try {
+      renderPage();
+
+      await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Create" }));
+      await user.click(screen.getByRole("button", { name: "submit" }));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("status-tmpl-failed")).toHaveTextContent("building"),
+      );
+
+      await flushPollInterval();
+
+      await waitFor(() =>
+        expect(screen.getByTestId("status-tmpl-failed")).toHaveTextContent("failed"),
+      );
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    }
+  });
+
+  test("reloads rows when the create job finishes successfully", async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+
+    fetchWorkstations
+      .mockResolvedValueOnce([
+        {
+          id: "w1",
+          name: "Alpha",
+          code: "A",
+          status: "connected",
+          usersCount: 0,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "w-created",
+          name: "Created WS",
+          code: "C",
+          status: "connected",
+          usersCount: 0,
+        },
+      ]);
+    clientApi.apiPost.mockResolvedValueOnce({
+      ok: true,
+      json: jest.fn().mockResolvedValue({
+        job_id: "job-success",
+        template_id: "tmpl-success",
+      }),
+    });
+    clientApi.apiGet.mockResolvedValueOnce({
+      json: jest.fn().mockResolvedValue({
+        job_id: "job-success",
+        status: "finished",
+        progress: "done",
+        result: { result: { template_id: "tmpl-success" } },
+      }),
+    });
+
+    try {
+      renderPage();
+
+      await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
+      await user.click(screen.getByRole("button", { name: "Create" }));
+      await user.click(screen.getByRole("button", { name: "submit" }));
+
+      await waitFor(() =>
+        expect(screen.getByTestId("status-tmpl-success")).toHaveTextContent("building"),
+      );
+
+      await flushPollInterval();
+
+      await waitFor(() =>
+        expect(screen.getByTestId("status-w-created")).toHaveTextContent("connected"),
+      );
+      expect(fetchWorkstations).toHaveBeenCalledTimes(2);
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    }
   });
 
   test("shows refresh error when refresh fails", async () => {

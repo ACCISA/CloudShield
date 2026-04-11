@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
 import WorkstationModal from "../components/workstations/WorkstationModal.jsx";
@@ -11,7 +11,6 @@ import CreateWorkstationIcon from "../assets/CreateWorkstationIcon.jsx";
 import { WORKSTATION_FILTERS } from "../config/filterConfigs.js";
 import { useClickLogger } from "../hooks/useClickLogger";
 import { useThemeColors } from "../hooks/useThemeColors.js";
-import { trackButton } from "../lib/analytics";
 import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
 import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
 import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
@@ -31,7 +30,20 @@ import { managementToolbarStyles } from "../components/common/styles/managementT
 import { fetchWorkstations } from "../utils/modalHelpers.jsx";
 import Pagination from "../components/common/Pagination/Pagination.jsx";
 import Toast, { useToast } from "../components/common/Toast/Toast.jsx";
-import { apiPost } from "../api/client.js";
+import { apiGet, apiPost } from "../api/client.js";
+
+const POLL_INTERVAL_MS = 2000;
+
+const isFailedProgress = (progress) => {
+  const normalized = (progress || "").toLowerCase();
+  return (
+    normalized === "failed" ||
+    normalized === "org not found" ||
+    normalized === "template not found" ||
+    normalized === "image not ready" ||
+    normalized.startsWith("failed")
+  );
+};
 
 const styles = {
   ...managementToolbarStyles,
@@ -56,7 +68,6 @@ const styles = {
 
 export const createWorkstationTemplate = async (orgId, payload) => {
   try {
-    const token = localStorage.getItem("jwt");
     const res = await apiPost(`/workstations/templates`, {
         org_id: orgId,
         name: payload.name,
@@ -77,6 +88,7 @@ export default function WorkstationsPage() {
   const location = useLocation();
   const withClickLog = useClickLogger({ page: "workstations" });
   const themeColors = useThemeColors();
+  const pollTimersRef = useRef(new Map());
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [layout, setLayout] = useState("list");
@@ -96,6 +108,58 @@ export default function WorkstationsPage() {
   const { toast, showToast, hideToast } = useToast(6000);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const loadRows = useCallback(async () => {
+    const orgId = localStorage.getItem("org_id");
+    const token = localStorage.getItem("jwt");
+    const data = await fetchWorkstations(orgId, token);
+    setRows(data);
+  }, []);
+
+  const clearPollTimer = useCallback((jobId) => {
+    const timerId = pollTimersRef.current.get(jobId);
+    if (timerId) clearTimeout(timerId);
+    pollTimersRef.current.delete(jobId);
+  }, []);
+
+  const pollCreateJob = useCallback(
+    (jobId, rowId) => {
+      if (!jobId || pollTimersRef.current.has(jobId)) return;
+
+      const tick = async () => {
+        try {
+          const res = await apiGet(`/status/${encodeURIComponent(jobId)}`);
+          const job = await res.json();
+          const jobStatus = (job.status || "").toLowerCase();
+
+          if (jobStatus === "failed" || isFailedProgress(job.progress)) {
+            setRows((prev) =>
+              prev.map((row) =>
+                row.id === rowId ? { ...row, status: "failed", online: false } : row,
+              ),
+            );
+            clearPollTimer(jobId);
+            return;
+          }
+
+          if (jobStatus === "finished") {
+            clearPollTimer(jobId);
+            await loadRows();
+            return;
+          }
+        } catch (err) {
+          console.error("Failed to poll workstation creation job:", err);
+        }
+
+        const nextTimerId = window.setTimeout(tick, POLL_INTERVAL_MS);
+        pollTimersRef.current.set(jobId, nextTimerId);
+      };
+
+      const timerId = window.setTimeout(tick, POLL_INTERVAL_MS);
+      pollTimersRef.current.set(jobId, timerId);
+    },
+    [clearPollTimer, loadRows],
+  );
+
   useEffect(() => {
     if (location.state?.openModal) {
       setOpenModal(true);
@@ -107,14 +171,21 @@ export default function WorkstationsPage() {
   useEffect(() => {
     const loadWorkstations = async () => {
       setLoading(true);
-      const orgId = localStorage.getItem("org_id");
-      const token = localStorage.getItem("jwt");
-      const data = await fetchWorkstations(orgId, token);
-      setRows(data);
+      await loadRows();
       setLoading(false);
     };
     loadWorkstations();
-  }, []);
+  }, [loadRows]);
+
+  useEffect(
+    () => () => {
+      pollTimersRef.current.forEach((timerId) => {
+        if (timerId) clearTimeout(timerId);
+      });
+      pollTimersRef.current.clear();
+    },
+    [],
+  );
 
   useEffect(() => {
     setCurrentPage(1);
@@ -198,8 +269,9 @@ export default function WorkstationsPage() {
     const orgId = localStorage.getItem("org_id");
     const created = await createWorkstationTemplate(orgId, payload);
     if (created) {
+      const rowId = created.template_id || created.job_id || `ws-${Date.now()}`;
       const newRow = {
-        id: created.template_id || created.job_id || `ws-${Date.now()}`,
+        id: rowId,
         name: payload.name,
         code: "WS-NEW",
         usersCount: payload.members?.length || 0,
@@ -207,9 +279,12 @@ export default function WorkstationsPage() {
         currentUser: payload.members?.[0] || null,
         lastUsed: "—",
         status: "building",
+        online: false,
+        _jobId: created.job_id,
         _isTemplate: true,
       };
       setRows((prev) => [newRow, ...prev]);
+      pollCreateJob(created.job_id, rowId);
     }
     return Boolean(created);
   };
@@ -247,16 +322,14 @@ export default function WorkstationsPage() {
     setLoading(true);
     try {
       await safeAsync(async () => {
-        const orgId = localStorage.getItem("org_id");
-        const token = localStorage.getItem("jwt");
-        setRows(await fetchWorkstations(orgId, token));
+        await loadRows();
       });
     } catch (err) {
       setError(getUserErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadRows]);
 
   const selectedCount = useMemo(
     () => filtered.filter((r) => selectedIds.has(r.id)).length,
