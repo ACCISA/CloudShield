@@ -87,12 +87,14 @@ jest.mock("../../components/workstations/WorkstationList.jsx", () => ({
           >
             Delete
           </button>
-          <button
-            data-testid={`toggle-status-${row.id}`}
-            onClick={() => onToggleStatus?.(row.id)}
-          >
-            Toggle Status
-          </button>
+          {onToggleStatus ? (
+            <button
+              data-testid={`toggle-status-${row.id}`}
+              onClick={() => onToggleStatus?.(row.id)}
+            >
+              Toggle Status
+            </button>
+          ) : null}
         </div>
       ))}
     </div>
@@ -224,6 +226,8 @@ describe("createWorkstationTemplate", () => {
 describe("WorkstationsPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    sessionStorage.clear();
+    localStorage.clear();
     fetchWorkstations.mockResolvedValue([
       {
         id: "w1",
@@ -407,6 +411,107 @@ describe("WorkstationsPage", () => {
     }
   });
 
+  test("restores failed template status from session storage after refresh", async () => {
+    fetchWorkstations.mockResolvedValueOnce([
+      {
+        id: "tmpl-failed",
+        name: "Created WS",
+        status: "disconnected",
+        usersCount: 1,
+        _isTemplate: true,
+      },
+    ]);
+    sessionStorage.setItem(
+      "tracked_workstation_creations",
+      JSON.stringify([
+        {
+          templateId: "tmpl-failed",
+          jobId: "job-failed",
+          status: "failed",
+          row: {
+            id: "tmpl-failed",
+            name: "Created WS",
+            status: "failed",
+            online: false,
+          },
+        },
+      ]),
+    );
+
+    renderPage();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("status-tmpl-failed")).toHaveTextContent("failed"),
+    );
+  });
+
+  test("resumes polling tracked template after refresh and turns it green on success", async () => {
+    jest.useFakeTimers();
+    fetchWorkstations
+      .mockResolvedValueOnce([
+        {
+          id: "tmpl-building",
+          name: "Recovered WS",
+          status: "disconnected",
+          usersCount: 1,
+          _isTemplate: true,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "tmpl-building",
+          name: "Recovered WS",
+          status: "connected",
+          usersCount: 1,
+          _isTemplate: true,
+        },
+      ]);
+    clientApi.apiGet.mockResolvedValueOnce({
+      json: jest.fn().mockResolvedValue({
+        job_id: "job-building",
+        status: "finished",
+        progress: "done",
+        result: { result: { template_id: "tmpl-building" } },
+      }),
+    });
+    sessionStorage.setItem(
+      "tracked_workstation_creations",
+      JSON.stringify([
+        {
+          templateId: "tmpl-building",
+          jobId: "job-building",
+          status: "building",
+          row: {
+            id: "tmpl-building",
+            name: "Recovered WS",
+            status: "building",
+            online: false,
+          },
+        },
+      ]),
+    );
+
+    try {
+      renderPage();
+
+      await waitFor(() =>
+        expect(screen.getByTestId("status-tmpl-building")).toHaveTextContent("building"),
+      );
+
+      await flushPollInterval();
+
+      await waitFor(() =>
+        expect(screen.getByTestId("status-tmpl-building")).toHaveTextContent("connected"),
+      );
+      expect(
+        JSON.parse(sessionStorage.getItem("tracked_workstation_creations") || "[]"),
+      ).toEqual([]);
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    }
+  });
+
   test("shows refresh error when refresh fails", async () => {
     const user = userEvent.setup();
     fetchWorkstations
@@ -531,41 +636,12 @@ describe("WorkstationsPage", () => {
     });
   });
 
-  test("toggles status from connected to disconnected", async () => {
-    const user = userEvent.setup();
+  test("renders status as display-only without toggle controls", async () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
-    // w1 starts as "connected" — clicking toggle should flip it to "disconnected"
-    await user.click(screen.getByTestId("toggle-status-w1"));
-
-    // The row is still present (not deleted)
-    expect(screen.getByText("Alpha")).toBeInTheDocument();
-  });
-
-  test("does not toggle status for building workstation", async () => {
-    const user = userEvent.setup();
-    fetchWorkstations.mockResolvedValueOnce([
-      { id: "w-build", name: "InProgress", status: "building", usersCount: 0 },
-    ]);
-
-    renderPage();
-    await waitFor(() => expect(screen.getByText("InProgress")).toBeInTheDocument());
-    // Clicking toggle on a building row should be a no-op (status stays "building")
-    await user.click(screen.getByTestId("toggle-status-w-build"));
-    expect(screen.getByText("InProgress")).toBeInTheDocument();
-  });
-
-  test("does not toggle status for provisioning workstation", async () => {
-    const user = userEvent.setup();
-    fetchWorkstations.mockResolvedValueOnce([
-      { id: "w-prov", name: "Provisioning WS", status: "provisioning", usersCount: 0 },
-    ]);
-
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Provisioning WS")).toBeInTheDocument());
-    await user.click(screen.getByTestId("toggle-status-w-prov"));
-    expect(screen.getByText("Provisioning WS")).toBeInTheDocument();
+    expect(screen.queryByTestId("toggle-status-w1")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("toggle-status-w2")).not.toBeInTheDocument();
   });
 
   test("shows failed-create toast when createWorkstationTemplate returns null", async () => {
