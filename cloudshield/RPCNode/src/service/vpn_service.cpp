@@ -1,6 +1,31 @@
 #include "service/vpn_service.hpp"
 #include "utils/sanitize.hpp"
 
+#include <algorithm>
+#include <cctype>
+
+namespace {
+bool IsTruthyMetadataFlag(const grpc::ServerContext* context, const std::string& key)
+{
+	if (context == nullptr) {
+		return false;
+	}
+
+	const auto& metadata = context->client_metadata();
+	auto it = metadata.find(key);
+	if (it == metadata.end()) {
+		return false;
+	}
+
+	std::string value(it->second.data(), it->second.length());
+	std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
+		return static_cast<char>(std::tolower(c));
+	});
+
+	return value == "1" || value == "true" || value == "yes" || value == "on";
+}
+}
+
 VPNService::VPNService()
 {
 
@@ -12,6 +37,7 @@ Status VPNService::CreateVPNClient(ServerContext* context, const vs::CreateVPNCl
 	try {
 
 	std::string client_name = request->client_name();
+	const bool debug_localhost_remote = IsTruthyMetadataFlag(context, "debug-localhost-remote");
 	std::cout << "[VPNService] CreateVPNClient called for: " << client_name << std::endl;
 
 	if (client_name.empty()) {
@@ -20,7 +46,7 @@ Status VPNService::CreateVPNClient(ServerContext* context, const vs::CreateVPNCl
 	}
 
 	auto vpn = std::make_unique<VPNTask>();
-	VPNClientResult result = vpn->CreateVPNClient(client_name);
+	VPNClientResult result = vpn->CreateVPNClient(client_name, debug_localhost_remote);
 
 	if (!result.success) {
 		std::cerr << "[VPNService] CreateVPNClient failed: " << result.error << std::endl;

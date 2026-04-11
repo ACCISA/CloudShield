@@ -1,9 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ElectronResult } from "../../models/ElectronResult";
-import type {
-  WorkstationTemplate,
-  Workstation,
-} from "../../models/Workstations";
+import type { WorkstationTemplate } from "../../models/Workstations";
 import WorkstationService from "../../services/WorkstationService";
 import SearchField from "../../components/common/SearchField";
 import DisplayButton from "../../components/common/DisplayButton";
@@ -94,13 +90,9 @@ export default function WorkstationsPage() {
   const [refreshIndex, setRefreshIndex] = useState(0);
   const [layout, setLayout] = useState<"list" | "icons">("list");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoadingWorkstations, setIsLoadingWorkstations] =
-    useState<boolean>(false);
+  const [activeRdpTemplateId, setActiveRdpTemplateId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedWorkstation, setSelectedWorkstation] =
-    useState<Workstation | null>(null);
   const [rdpStatus, setRdpStatus] = useState<string | null>(null);
-  const [rdpPID, setRdpPID] = useState<number | undefined>(undefined);
   const authSnapshot = window.authStore?.loadAuth();
   const storedAuth = (() => {
     if (authSnapshot?.accessToken) {
@@ -148,7 +140,7 @@ export default function WorkstationsPage() {
         const response = await WorkstationService.getWorkstationTemplates();
 
         if (isMounted) {
-          setTemplateItems(response);
+          setTemplateItems(Array.isArray(response) ? response : []);
         }
       } catch (err) {
         if (isMounted) {
@@ -180,56 +172,73 @@ export default function WorkstationsPage() {
     window.dispatchEvent(new Event("auth-changed"));
   };
 
-  const killRDP = async () => {
-    if (rdpPID) {
-      await window.electronAPI?.killProcess(rdpPID);
+  const handleTemplateConnect = async (template_id: string) => {
+    if (activeRdpTemplateId) {
+      setRdpStatus("RDP session already active. Close it before starting another.");
+      return;
     }
-  };
 
-  const handleConnect = async () => {
-    if (!selectedWorkstation) return;
     if (!window.electronAPI?.runXfreerdp) {
       setRdpStatus("Error: Electron API not available");
       return;
     }
 
-    const ip = (selectedWorkstation.ipv4_address || "").trim();
-    if (!ip) {
-      setRdpStatus("Error: Workstation IP is missing");
-      return;
-    }
-
-    const org = await OrgService.getOrganization();
-    const domain = org.domain_name;
-    // Extract username from JWT claims
-    let username = "";
-    if (accessToken) {
-      const claims = decodeJwtClaims(accessToken);
-      username = deriveUsername(claims);
-    }
-    const rdpPassword = getSessionPassword();
-    if (rdpPassword == null) {
-      throw new Error("RDP Pass not set");
-    }
-    let rdpUsername = `${domain}\\${username}`;
+    let assigned = false;
 
     try {
+      setActiveRdpTemplateId(template_id);
+      setRdpStatus("Reserving workstation...");
+      const workstation = await WorkstationService.assignWorkStation(template_id);
+      assigned = true;
+
+      const ip = (workstation.ipv4_address || "").trim();
+      if (!ip) {
+        throw new Error("Workstation IP is missing");
+      }
+
+      const org = await OrgService.getOrganization();
+      const domain = org.domain_name;
+      // Extract username from JWT claims
+      let username = "";
+      if (accessToken) {
+        const claims = decodeJwtClaims(accessToken);
+        username = deriveUsername(claims);
+      }
+      const rdpPassword = getSessionPassword();
+      if (rdpPassword == null) {
+        throw new Error("RDP password unavailable. Please sign in again.");
+      }
+      const rdpUsername = `${domain}\\${username}`;
+
       setRdpStatus("Launching RDP client...");
-      const result = (await window.electronAPI.runXfreerdp(
+      await window.electronAPI.runXfreerdp(
         rdpUsername,
         rdpPassword,
         ip,
-      )) as ElectronResult;
-      setRdpStatus(`Connected! (PID: ${result.pid ?? "-"})`);
-      setRdpPID(result.pid);
+      );
+      setRdpStatus("RDP session closed. Disconnecting workstation...");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setRdpStatus(`Error: ${message}`);
+    } finally {
+      if (assigned) {
+        try {
+          await WorkstationService.releaseWorkStation();
+        } catch (disconnectErr) {
+          const disconnectMessage =
+            disconnectErr instanceof Error
+              ? disconnectErr.message
+              : "Failed to release workstation.";
+          setRdpStatus(`Error: ${disconnectMessage}`);
+        }
+      }
+      setRefreshIndex((prev) => prev + 1);
+      setActiveRdpTemplateId(null);
     }
   };
 
   const listItems = useMemo(() => {
-    return templateItems.map((item, index) => {
+    return (templateItems ?? []).map((item, index) => {
       const key = `${item._id || "template"}-${item.org_id || "org"}-${item.name || "template"}-${index}`;
       const description = (
         item.description || "(No Description)"
@@ -269,29 +278,6 @@ export default function WorkstationsPage() {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredItems.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredItems, currentPage]);
-
-  const handleTemplateUse = async (template_id: string) => {
-    try {
-      setIsLoadingWorkstations(true);
-      const workstation =
-        await WorkstationService.assignWorkStation(template_id);
-      setSelectedWorkstation(workstation);
-    } finally {
-      setIsLoadingWorkstations(false);
-    }
-  };
-
-  const handleTemplateDisconnect = async () => {
-    try {
-      setIsLoadingWorkstations(true);
-      await WorkstationService.releaseWorkStation();
-      setSelectedWorkstation(null);
-      setRdpStatus(null);
-      killRDP();
-    } finally {
-      setIsLoadingWorkstations(false);
-    }
-  };
 
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-white px-6 py-8">
@@ -343,6 +329,14 @@ export default function WorkstationsPage() {
 
         {!isLoadingTemplates && !error && filteredItems.length > 0 && (
           <>
+            {rdpStatus && (
+              <Panel
+                className={`px-5 py-4 text-sm ${rdpStatus.startsWith("Error:") ? "border-red-500/40 bg-red-500/10 text-red-200" : "bg-white/5 text-white/75"}`}
+              >
+                {rdpStatus}
+              </Panel>
+            )}
+
             {layout === "list" && (
               <div className="flex items-center justify-between px-5 pt-2">
                 <span className="text-[0.85rem] text-white/70">
@@ -386,7 +380,11 @@ export default function WorkstationsPage() {
                           <div className="flex items-center gap-3">
                             <StatusButton
                               status={status}
-                              onClick={item.is_ready ? () => handleTemplateUse(item._id) : undefined}
+                              onClick={
+                                item.is_ready && !activeRdpTemplateId
+                                  ? () => handleTemplateConnect(item._id)
+                                  : undefined
+                              }
                             />
                             <ActiveIcon
                               outerColor={statusMeta.outerDot}
@@ -440,7 +438,11 @@ export default function WorkstationsPage() {
                       <div className="mt-4 flex items-center justify-center gap-3">
                         <StatusButton
                           status={status}
-                          onClick={item.is_ready ? () => handleTemplateUse(item._id) : undefined}
+                          onClick={
+                            item.is_ready && !activeRdpTemplateId
+                              ? () => handleTemplateConnect(item._id)
+                              : undefined
+                          }
                         />
                         <ActiveIcon
                           outerColor={statusMeta.outerDot}
@@ -462,71 +464,6 @@ export default function WorkstationsPage() {
               testId="workstations-pagination"
             />
           </>
-        )}
-
-        {!isLoadingWorkstations && !selectedWorkstation && (
-          <Panel className="px-5 py-6">
-            <h1>Not connected to a workstation</h1>
-          </Panel>
-        )}
-        {isLoadingWorkstations && (
-          <Panel className="px-5 py-6">
-            <h1>Searching for workstations...</h1>
-            <svg
-              className="mt-4 h-8 w-8 animate-spin text-white/70"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-30"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-                fill="none"
-              />
-              <path
-                className="opacity-90"
-                d="M22 12a10 10 0 0 1-10 10"
-                stroke="currentColor"
-                strokeWidth="4"
-                fill="none"
-              />
-            </svg>
-          </Panel>
-        )}
-
-        {selectedWorkstation && !isLoadingWorkstations && (
-          <Panel className="px-5 py-6">
-            <h1>Connected to workstation {selectedWorkstation.ipv4_address}</h1>
-            <p className="mt-2 text-sm text-white/70">
-              You are now connected to your workstation. Use the options below
-              to manage your connection or access additional features.
-            </p>
-            {rdpStatus && (
-              <div className="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
-                {rdpStatus}
-              </div>
-            )}
-            <div className="flex gap-5">
-              <button
-                onClick={() => {
-                  handleConnect();
-                }}
-                className="mt-4 rounded-lg border border-white/10 bg-[#101010] px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/10"
-              >
-                Launch RDP
-              </button>
-              <button
-                onClick={() => {
-                  handleTemplateDisconnect();
-                }}
-                className="mt-4 rounded-lg border border-white/10 bg-[#A41010] px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/10"
-              >
-                Disconnect
-              </button>
-            </div>
-          </Panel>
         )}
       </div>
     </div>
