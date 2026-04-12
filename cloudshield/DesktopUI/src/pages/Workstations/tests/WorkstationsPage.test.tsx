@@ -411,6 +411,126 @@ describe("WorkstationsPage", () => {
     });
   });
 
+  it("rejects rdp when user id is unavailable", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      expiresAt: Date.now() + 60000,
+    });
+    localStorage.removeItem("user_id");
+    getWorkstationTemplatesMock.mockResolvedValue(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Error: User id unavailable.")).toBeTruthy();
+      expect(apiGetMock).not.toHaveBeenCalled();
+      expect(runXfreerdpMock).not.toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
+    });
+  });
+
+  it("rejects rdp when fetching user details fails", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      expiresAt: Date.now() + 60000,
+    });
+    getWorkstationTemplatesMock.mockResolvedValue(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
+    apiGetMock.mockResolvedValueOnce({
+      ok: false,
+      json: vi.fn().mockResolvedValue({}),
+    });
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Error: Failed to fetch user details for RDP."),
+      ).toBeTruthy();
+      expect(runXfreerdpMock).not.toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
+    });
+  });
+
+  it("rejects rdp when organization realm is missing", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      expiresAt: Date.now() + 60000,
+    });
+    getWorkstationTemplatesMock.mockResolvedValue(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
+    getOrganizationMock.mockResolvedValueOnce({
+      domain_name: "march.local",
+      realm_name: "   ",
+    });
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Error: Organization realm is missing."),
+      ).toBeTruthy();
+      expect(runXfreerdpMock).not.toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
+    });
+  });
+
+  it("rejects rdp when user username is missing", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      expiresAt: Date.now() + 60000,
+    });
+    getWorkstationTemplatesMock.mockResolvedValue(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
+    apiGetMock.mockResolvedValueOnce({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ user: { username: "   " } }),
+    });
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Error: User username is missing."),
+      ).toBeTruthy();
+      expect(runXfreerdpMock).not.toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
+    });
+  });
+
   it("handles RDP launch", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
