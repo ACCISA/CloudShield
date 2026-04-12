@@ -9,9 +9,8 @@ const getWorkstationTemplatesMock = vi.hoisted(() => vi.fn());
 const assignWorkStationMock = vi.hoisted(() => vi.fn());
 const releaseWorkStationMock = vi.hoisted(() => vi.fn());
 const getOrganizationMock = vi.hoisted(() => vi.fn());
+const apiGetMock = vi.hoisted(() => vi.fn());
 const getSessionPasswordMock = vi.hoisted(() => vi.fn());
-const deriveUsernameMock = vi.hoisted(() => vi.fn());
-const decodeJwtClaimsMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../services/WorkstationService", () => ({
   default: {
@@ -27,16 +26,14 @@ vi.mock("../../../services/OrgService", () => ({
   },
 }));
 
+vi.mock("../../../utils/APIService", () => ({
+  default: {
+    get: apiGetMock,
+  },
+}));
+
 vi.mock("../../../utils/passwordMemory", () => ({
   getSessionPassword: getSessionPasswordMock,
-}));
-
-vi.mock("../../../utils/usernameUtil", () => ({
-  deriveUsername: deriveUsernameMock,
-}));
-
-vi.mock("../../../utils/jwtLocalStorage", () => ({
-  decodeJwtClaims: decodeJwtClaimsMock,
 }));
 
 describe("WorkstationsPage", () => {
@@ -56,9 +53,8 @@ describe("WorkstationsPage", () => {
     assignWorkStationMock.mockReset();
     releaseWorkStationMock.mockReset();
     getOrganizationMock.mockReset();
+    apiGetMock.mockReset();
     getSessionPasswordMock.mockReset();
-    deriveUsernameMock.mockReset();
-    decodeJwtClaimsMock.mockReset();
 
     loadAuthMock.mockReturnValue({
       accessToken: "token",
@@ -77,10 +73,13 @@ describe("WorkstationsPage", () => {
       showOpenDialog: showOpenDialogMock,
       killProcess: killProcessMock,
     };
-    getOrganizationMock.mockResolvedValue({ domain_name: "march.local" });
+    localStorage.setItem("user_id", "user-1");
+    getOrganizationMock.mockResolvedValue({ domain_name: "march.local", realm_name: "MARCH.LOCAL" });
+    apiGetMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ user: { username: "employee" } }),
+    });
     getSessionPasswordMock.mockReturnValue("pass123!");
-    deriveUsernameMock.mockReturnValue("employee");
-    decodeJwtClaimsMock.mockReturnValue({ sub: "user-1" });
     releaseWorkStationMock.mockResolvedValue(true);
   });
 
@@ -437,7 +436,11 @@ describe("WorkstationsPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
     await waitFor(() => {
       expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
-      expect(runXfreerdpMock).toHaveBeenCalled();
+      expect(runXfreerdpMock).toHaveBeenCalledWith(
+        "MARCH.LOCAL\\employee",
+        "pass123!",
+        mockWorkstations[0].ipv4_address,
+      );
       expect(releaseWorkStationMock).toHaveBeenCalled();
     });
   });

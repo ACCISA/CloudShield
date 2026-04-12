@@ -442,15 +442,39 @@ ipcMain.handle(
         let settled = false;
 
         if (isWin) {
-          // Fallback to Windows built-in RDP client
+          // Store credentials in Windows Credential Manager for autologin
+          const cmdkeyResult = spawnSync("cmdkey", [ //NOSONAR typescript:S4036
+            `/generic:TERMSRV/${params.ip}`,
+            `/user:${params.username}`,
+            `/pass:${params.password}`,
+          ]);
+          const credentialsStored =
+            !cmdkeyResult.error && cmdkeyResult.status === 0;
+          if (!credentialsStored) {
+            const cmdkeyStderr = String(cmdkeyResult.stderr || "").trim();
+            const cmdkeyError = cmdkeyResult.error
+              ? String(cmdkeyResult.error)
+              : cmdkeyStderr || `cmdkey exited with code ${cmdkeyResult.status ?? "unknown"}`;
+            console.warn(
+              `[mstsc] Failed to store RDP credentials via cmdkey; falling back to manual login: ${cmdkeyError}`,
+            );
+          }
+
+          // Launch Windows built-in RDP client
           const mstsc = "mstsc.exe";
           const child = spawn(mstsc, ["/v:" + params.ip, "/f"]); //NOSONAR typescript:S4036
           child.on("error", (err) => {
+            if (credentialsStored) {
+              spawnSync("cmdkey", [`/delete:TERMSRV/${params.ip}`]); //NOSONAR typescript:S4036
+            }
             if (settled) return;
             settled = true;
             reject(err);
           });
           child.on("close", (code) => {
+            if (credentialsStored) {
+              spawnSync("cmdkey", [`/delete:TERMSRV/${params.ip}`]); //NOSONAR typescript:S4036
+            }
             if (settled) return;
             settled = true;
             if (code !== 0) {

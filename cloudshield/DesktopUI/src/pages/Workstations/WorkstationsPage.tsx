@@ -11,8 +11,7 @@ import BuildingTemplateIcon from "../../assets/BuildingTemplateIcon";
 import EmptyState from "../../components/common/EmptyState";
 import Panel from "../../components/common/Panel";
 import OrgService from "../../services/OrgService";
-import { deriveUsername } from "../../utils/usernameUtil";
-import { decodeJwtClaims } from "../../utils/jwtLocalStorage";
+import APIService from "../../utils/APIService";
 import { getSessionPassword } from "../../utils/passwordMemory";
 const ITEMS_PER_PAGE = 9;
 
@@ -196,19 +195,31 @@ export default function WorkstationsPage() {
         throw new Error("Workstation IP is missing");
       }
 
-      const org = await OrgService.getOrganization();
-      const domain = org.domain_name;
-      // Extract username from JWT claims
-      let username = "";
-      if (accessToken) {
-        const claims = decodeJwtClaims(accessToken);
-        username = deriveUsername(claims);
+      const userId = (localStorage.getItem("user_id") || "").trim();
+      if (!userId) {
+        throw new Error("User id unavailable.");
+      }
+      const [org, userResponse] = await Promise.all([
+        OrgService.getOrganization(),
+        APIService.get(`users/${encodeURIComponent(userId)}`),
+      ]);
+      if (!userResponse.ok) {
+        throw new Error("Failed to fetch user details for RDP.");
+      }
+      const userPayload = await userResponse.json();
+      const realm = (org.realm_name || "").trim();
+      const username = (userPayload?.user?.username || "").trim();
+      if (!realm) {
+        throw new Error("Organization realm is missing.");
+      }
+      if (!username) {
+        throw new Error("User username is missing.");
       }
       const rdpPassword = getSessionPassword();
       if (rdpPassword == null) {
         throw new Error("RDP password unavailable. Please sign in again.");
       }
-      const rdpUsername = `${domain}\\${username}`;
+      const rdpUsername = `${realm}\\${username}`;
 
       setRdpStatus("Launching RDP client...");
       await window.electronAPI.runXfreerdp(
