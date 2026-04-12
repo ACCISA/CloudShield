@@ -49,8 +49,8 @@ _EXPORTS: dict[str, tuple[str, str]] = {
 
 
 def __getattr__(name: str) -> Any:  # pragma: no cover
-    if name == "redis_client":
-        module = importlib.import_module(".redis_client", __name__)
+    if name in {"redis_client", "audit", "database"}:
+        module = importlib.import_module(f".{name}", __name__)
         globals()[name] = module
         return module
 

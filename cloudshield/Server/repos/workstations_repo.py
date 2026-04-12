@@ -186,7 +186,7 @@ def get_workstations(db, org_id: str):
     Get all the workstations of an organization
     """
 
-    ws_db = db.workstations
+    ws_db = db.workstation_templates
 
     workstations = list(ws_db.find({"org_id": org_id}))
     
@@ -226,4 +226,3 @@ def get_available_workstation(db, user_id):
         workstations.append(doc)
 
     return workstations
-
