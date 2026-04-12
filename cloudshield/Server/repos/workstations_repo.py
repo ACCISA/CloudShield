@@ -226,4 +226,3 @@ def get_available_workstation(db, user_id):
         workstations.append(doc)
 
     return workstations
-

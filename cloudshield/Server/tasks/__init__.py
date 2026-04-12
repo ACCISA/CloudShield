@@ -1,3 +1,5 @@
+import importlib
+
 from .network_provisioning import provision_network as provision_network
 from .network_provisioning import destroy_environment as destroy_environment
 from .network_provisioning import provision_workstations as provision_workstations
@@ -42,3 +44,9 @@ if _provision_module is not None:
     provision_main = _provision_module.provision_network_terraform
 else:
     provision_main = None  # type: ignore[assignment]
+
+
+def __getattr__(name):
+    if name == "task":
+        return importlib.import_module(".task", __name__)
+    raise AttributeError(name)

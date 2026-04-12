@@ -139,7 +139,7 @@ class TestGetFullGrpcPath:
         result = get_full_grpc_path("@@InvalidMethod@@")
         assert result is None
 
-    @patch("cloudshield.Server.tasks.task.descriptor_pool")
+    @patch.object(_task_mod, "descriptor_pool")
     def test_get_full_grpc_path_key_error(self, mock_pool):
         """Test get_full_grpc_path handles KeyError from descriptor pool."""
         mock_default = MagicMock()
@@ -149,7 +149,7 @@ class TestGetFullGrpcPath:
         result = get_full_grpc_path("SomeMethod")
         assert result is None
 
-    @patch("cloudshield.Server.tasks.task.descriptor_pool")
+    @patch.object(_task_mod, "descriptor_pool")
     def test_get_full_grpc_path_success(self, mock_pool):
         """Test get_full_grpc_path successfully constructs path."""
         mock_method = MagicMock()
@@ -169,7 +169,7 @@ class TestGetFullGrpcPath:
 class TestGetGrpcChannel:
     """Tests for the get_grpc_channel function."""
 
-    @patch("cloudshield.Server.tasks.task.grpc.insecure_channel")
+    @patch.object(_task_mod.grpc, "insecure_channel")
     def test_get_grpc_channel_creates_channel(self, mock_insecure_channel):
         """Test get_grpc_channel creates an insecure gRPC channel."""
         mock_channel = MagicMock()
@@ -180,7 +180,7 @@ class TestGetGrpcChannel:
         mock_insecure_channel.assert_called_once_with("localhost:8080")
         assert result == mock_channel
 
-    @patch("cloudshield.Server.tasks.task.grpc.insecure_channel")
+    @patch.object(_task_mod.grpc, "insecure_channel")
     def test_get_grpc_channel_with_different_host(self, mock_insecure_channel):
         """Test get_grpc_channel with different host addresses."""
         mock_channel = MagicMock()
@@ -189,7 +189,7 @@ class TestGetGrpcChannel:
         get_grpc_channel("192.168.1.1:5000")
         mock_insecure_channel.assert_called_once_with("192.168.1.1:5000")
 
-    @patch("cloudshield.Server.tasks.task.grpc.insecure_channel")
+    @patch.object(_task_mod.grpc, "insecure_channel")
     def test_get_grpc_channel_returns_channel(self, mock_insecure_channel):
         """Test get_grpc_channel returns the created channel."""
         mock_channel = MagicMock()
@@ -202,7 +202,7 @@ class TestGetGrpcChannel:
 class TestGetServerNodes:
     """Tests for the get_server_nodes function."""
 
-    @patch("cloudshield.Server.tasks.task.get_inventory_from_org_id")
+    @patch.object(_task_mod, "get_inventory_from_org_id")
     def test_get_server_nodes_with_both_nodes(self, mock_get_inventory):
         """Test get_server_nodes returns both OPENVPN and DOMAIN_CONTROLLER nodes."""
         openvpn_asset = EC2Instance(
@@ -256,7 +256,7 @@ class TestGetServerNodes:
         assert result["OPENVPN"].ip == "203.0.113.1"
         assert result["DOMAIN_CONTROLLER"].ip == "10.0.0.2"
 
-    @patch("cloudshield.Server.tasks.task.get_inventory_from_org_id")
+    @patch.object(_task_mod, "get_inventory_from_org_id")
     def test_get_server_nodes_only_openvpn(self, mock_get_inventory):
         """Test get_server_nodes with only OPENVPN node."""
         openvpn_asset = EC2Instance(
@@ -288,7 +288,7 @@ class TestGetServerNodes:
         assert "OPENVPN" in result
         assert "DOMAIN_CONTROLLER" not in result
 
-    @patch("cloudshield.Server.tasks.task.get_inventory_from_org_id")
+    @patch.object(_task_mod, "get_inventory_from_org_id")
     def test_get_server_nodes_empty_inventory(self, mock_get_inventory):
         """Test get_server_nodes with empty inventory."""
         inventory = Inventory(org_id="org-123", assets=[])
@@ -298,8 +298,8 @@ class TestGetServerNodes:
 
         assert result == {}
 
-    @patch("cloudshield.Server.tasks.task.get_logger")
-    @patch("cloudshield.Server.tasks.task.get_inventory_from_org_id")
+    @patch.object(_task_mod, "get_logger")
+    @patch.object(_task_mod, "get_inventory_from_org_id")
     def test_get_server_nodes_inventory_none(self, mock_get_inventory, mock_logger):
         """Test get_server_nodes when inventory is None."""
         mock_get_inventory.return_value = None
@@ -310,7 +310,7 @@ class TestGetServerNodes:
         assert result is None
         mock_get_inventory.assert_called_once_with("org-nonexistent")
 
-    @patch("cloudshield.Server.tasks.task.get_inventory_from_org_id")
+    @patch.object(_task_mod, "get_inventory_from_org_id")
     def test_get_server_nodes_multiple_assets_unrelated(self, mock_get_inventory):
         """Test get_server_nodes filters correct assets by name."""
         unrelated_asset = EC2Instance(
@@ -364,7 +364,7 @@ class TestGetServerNodes:
         assert "OPENVPN" in result
         assert len(result) == 1
 
-    @patch("cloudshield.Server.tasks.task.get_inventory_from_org_id")
+    @patch.object(_task_mod, "get_inventory_from_org_id")
     def test_get_server_nodes_server_node_properties(self, mock_get_inventory):
         """Test get_server_nodes creates ServerNode with correct properties."""
         openvpn_asset = EC2Instance(
@@ -400,7 +400,7 @@ class TestGetServerNodes:
 class TestGetServerNode:
     """Tests for the get_server_node function."""
 
-    @patch("cloudshield.Server.tasks.task.get_server_nodes")
+    @patch.object(_task_mod, "get_server_nodes")
     def test_get_server_node_raises_attribute_error(self, mock_get_server_nodes):
         """Test get_server_node raises AttributeError due to bug in implementation.
         
@@ -428,7 +428,7 @@ class TestGetServerNode:
         with pytest.raises(AttributeError):
             get_server_node("org-123", NodeType.OPENVPN)
 
-    @patch("cloudshield.Server.tasks.task.get_server_nodes")
+    @patch.object(_task_mod, "get_server_nodes")
     def test_get_server_node_with_empty_nodes(self, mock_get_server_nodes):
         """Test get_server_node with empty nodes dictionary returns None implicitly."""
         nodes = {}
@@ -443,9 +443,9 @@ class TestGetServerNode:
 class TestProxyRPCRequest:
     """Tests for the proxy_rpc_request function."""
 
-    @patch("cloudshield.Server.tasks.task.get_grpc_channel")
-    @patch("cloudshield.Server.tasks.task.get_full_grpc_path")
-    @patch("cloudshield.Server.tasks.task.vpn_pb2_grpc.VPNServiceStub")
+    @patch.object(_task_mod, "get_grpc_channel")
+    @patch.object(_task_mod, "get_full_grpc_path")
+    @patch.object(_task_mod.vpn_pb2_grpc, "VPNServiceStub")
     def test_proxy_rpc_request_success(
         self,
         mock_stub_class,
@@ -488,9 +488,9 @@ class TestProxyRPCRequest:
         mock_get_channel.assert_called_once_with("203.0.113.1:1194")
         mock_stub.Relay.assert_called_once()
 
-    @patch("cloudshield.Server.tasks.task.get_grpc_channel")
-    @patch("cloudshield.Server.tasks.task.get_full_grpc_path")
-    @patch("cloudshield.Server.tasks.task.vpn_pb2_grpc.VPNServiceStub")
+    @patch.object(_task_mod, "get_grpc_channel")
+    @patch.object(_task_mod, "get_full_grpc_path")
+    @patch.object(_task_mod.vpn_pb2_grpc, "VPNServiceStub")
     def test_proxy_rpc_request_stub_error(
         self,
         mock_stub_class,
@@ -529,7 +529,7 @@ class TestProxyRPCRequest:
 
         assert result is None
 
-    @patch("cloudshield.Server.tasks.task.get_full_grpc_path")
+    @patch.object(_task_mod, "get_full_grpc_path")
     def test_proxy_rpc_request_invalid_method(self, mock_get_full_path):
         """Test proxy_rpc_request with invalid method name."""
         openvpn_node = ServerNode(
@@ -598,9 +598,9 @@ class TestProxyRPCRequest:
 
         assert result is None
 
-    @patch("cloudshield.Server.tasks.task.get_grpc_channel")
-    @patch("cloudshield.Server.tasks.task.get_full_grpc_path")
-    @patch("cloudshield.Server.tasks.task.vpn_pb2_grpc.VPNServiceStub")
+    @patch.object(_task_mod, "get_grpc_channel")
+    @patch.object(_task_mod, "get_full_grpc_path")
+    @patch.object(_task_mod.vpn_pb2_grpc, "VPNServiceStub")
     def test_proxy_rpc_request_serialization(
         self,
         mock_stub_class,
@@ -646,9 +646,9 @@ class TestProxyRPCRequest:
         relay_request = call_args[0][0]
         assert relay_request.data == expected_serialized
 
-    @patch("cloudshield.Server.tasks.task.get_grpc_channel")
-    @patch("cloudshield.Server.tasks.task.get_full_grpc_path")
-    @patch("cloudshield.Server.tasks.task.vpn_pb2_grpc.VPNServiceStub")
+    @patch.object(_task_mod, "get_grpc_channel")
+    @patch.object(_task_mod, "get_full_grpc_path")
+    @patch.object(_task_mod.vpn_pb2_grpc, "VPNServiceStub")
     def test_proxy_rpc_request_relay_data_format(
         self,
         mock_stub_class,
@@ -697,7 +697,7 @@ class TestProxyRPCRequest:
 class TestIntegration:
     """Integration tests combining multiple components."""
 
-    @patch("cloudshield.Server.tasks.task.get_inventory_from_org_id")
+    @patch.object(_task_mod, "get_inventory_from_org_id")
     def test_full_server_node_workflow(self, mock_get_inventory):
         """Test complete workflow from inventory to ServerNode creation."""
         openvpn_asset = EC2Instance(
