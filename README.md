@@ -6,6 +6,9 @@
 ## Deployed Product
 [Link to Deployed Product](http://real.encs.concordia.ca)
 
+Production uptime is monitored externally at [cloudshield-status.duckdns.org/status/production](https://cloudshield-status.duckdns.org/status/production).
+This status page gives a quick view of whether the main CloudShield services are currently reachable and running.
+
 ## Continuous Integration (CI)
 This project uses **GitHub Actions** for automated CI on all pull requests and pushes to `main`. The pipeline builds both the **React frontend** and **Python backend** using **Docker Compose** to ensure consistent local environments, runs **Jest** and **Pytest** test suites, and performs **SonarCloud** analysis for code quality and coverage. While deployment to AWS is planned for future stages, the current CI ensures stable builds, reproducible tests, and continuous feedback on every code change.
 
