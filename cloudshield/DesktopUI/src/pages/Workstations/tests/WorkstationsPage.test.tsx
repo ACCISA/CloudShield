@@ -9,9 +9,8 @@ const getWorkstationTemplatesMock = vi.hoisted(() => vi.fn());
 const assignWorkStationMock = vi.hoisted(() => vi.fn());
 const releaseWorkStationMock = vi.hoisted(() => vi.fn());
 const getOrganizationMock = vi.hoisted(() => vi.fn());
+const apiGetMock = vi.hoisted(() => vi.fn());
 const getSessionPasswordMock = vi.hoisted(() => vi.fn());
-const deriveUsernameMock = vi.hoisted(() => vi.fn());
-const decodeJwtClaimsMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../../services/WorkstationService", () => ({
   default: {
@@ -27,16 +26,14 @@ vi.mock("../../../services/OrgService", () => ({
   },
 }));
 
+vi.mock("../../../utils/APIService", () => ({
+  default: {
+    get: apiGetMock,
+  },
+}));
+
 vi.mock("../../../utils/passwordMemory", () => ({
   getSessionPassword: getSessionPasswordMock,
-}));
-
-vi.mock("../../../utils/usernameUtil", () => ({
-  deriveUsername: deriveUsernameMock,
-}));
-
-vi.mock("../../../utils/jwtLocalStorage", () => ({
-  decodeJwtClaims: decodeJwtClaimsMock,
 }));
 
 describe("WorkstationsPage", () => {
@@ -56,9 +53,8 @@ describe("WorkstationsPage", () => {
     assignWorkStationMock.mockReset();
     releaseWorkStationMock.mockReset();
     getOrganizationMock.mockReset();
+    apiGetMock.mockReset();
     getSessionPasswordMock.mockReset();
-    deriveUsernameMock.mockReset();
-    decodeJwtClaimsMock.mockReset();
 
     loadAuthMock.mockReturnValue({
       accessToken: "token",
@@ -77,10 +73,13 @@ describe("WorkstationsPage", () => {
       showOpenDialog: showOpenDialogMock,
       killProcess: killProcessMock,
     };
-    getOrganizationMock.mockResolvedValue({ domain_name: "march.local" });
+    localStorage.setItem("user_id", "user-1");
+    getOrganizationMock.mockResolvedValue({ domain_name: "march.local", realm_name: "MARCH.LOCAL" });
+    apiGetMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ user: { username: "employee" } }),
+    });
     getSessionPasswordMock.mockReturnValue("pass123!");
-    deriveUsernameMock.mockReturnValue("employee");
-    decodeJwtClaimsMock.mockReturnValue({ sub: "user-1" });
     releaseWorkStationMock.mockResolvedValue(true);
   });
 
@@ -412,6 +411,126 @@ describe("WorkstationsPage", () => {
     });
   });
 
+  it("rejects rdp when user id is unavailable", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      expiresAt: Date.now() + 60000,
+    });
+    localStorage.removeItem("user_id");
+    getWorkstationTemplatesMock.mockResolvedValue(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Error: User id unavailable.")).toBeTruthy();
+      expect(apiGetMock).not.toHaveBeenCalled();
+      expect(runXfreerdpMock).not.toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
+    });
+  });
+
+  it("rejects rdp when fetching user details fails", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      expiresAt: Date.now() + 60000,
+    });
+    getWorkstationTemplatesMock.mockResolvedValue(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
+    apiGetMock.mockResolvedValueOnce({
+      ok: false,
+      json: vi.fn().mockResolvedValue({}),
+    });
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Error: Failed to fetch user details for RDP."),
+      ).toBeTruthy();
+      expect(runXfreerdpMock).not.toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
+    });
+  });
+
+  it("rejects rdp when organization realm is missing", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      expiresAt: Date.now() + 60000,
+    });
+    getWorkstationTemplatesMock.mockResolvedValue(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
+    getOrganizationMock.mockResolvedValueOnce({
+      domain_name: "march.local",
+      realm_name: "   ",
+    });
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Error: Organization realm is missing."),
+      ).toBeTruthy();
+      expect(runXfreerdpMock).not.toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
+    });
+  });
+
+  it("rejects rdp when user username is missing", async () => {
+    loadAuthMock.mockReturnValue({
+      accessToken: "token",
+      expiresAt: Date.now() + 60000,
+    });
+    getWorkstationTemplatesMock.mockResolvedValue(
+      mockWorkstationTemplates.map((template, index) => ({
+        ...template,
+        _id: `template-${index + 1}`,
+      })),
+    );
+    assignWorkStationMock.mockResolvedValueOnce(mockWorkstations[0]);
+    apiGetMock.mockResolvedValueOnce({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ user: { username: "   " } }),
+    });
+
+    render(<WorkstationsPage />);
+
+    expect(await screen.findByText("Windows 10 Pro")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Error: User username is missing."),
+      ).toBeTruthy();
+      expect(runXfreerdpMock).not.toHaveBeenCalled();
+      expect(releaseWorkStationMock).toHaveBeenCalled();
+    });
+  });
+
   it("handles RDP launch", async () => {
     loadAuthMock.mockReturnValue({
       accessToken: "token",
@@ -437,7 +556,11 @@ describe("WorkstationsPage", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Connect" })[0]);
     await waitFor(() => {
       expect(assignWorkStationMock).toHaveBeenCalledWith("template-1");
-      expect(runXfreerdpMock).toHaveBeenCalled();
+      expect(runXfreerdpMock).toHaveBeenCalledWith(
+        "MARCH.LOCAL\\employee",
+        "pass123!",
+        mockWorkstations[0].ipv4_address,
+      );
       expect(releaseWorkStationMock).toHaveBeenCalled();
     });
   });
