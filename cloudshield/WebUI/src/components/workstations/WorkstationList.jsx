@@ -293,7 +293,7 @@ function WorkstationRow({
         <div style={styles.statusButtonContainer}>
           <StatusButton
             status={r.status}
-            onClick={() => onToggleStatus?.(r.id)}
+            onClick={onToggleStatus ? () => onToggleStatus(r.id) : undefined}
           />
         </div>
 

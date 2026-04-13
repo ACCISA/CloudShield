@@ -267,78 +267,43 @@ export const fetchWorkstations = async (
         user,
       ]),
     );
-
-    const res = await apiGet(`/workstations?org_id=${encodeURIComponent(orgId)}`);
-
-    const data = await res.json();
-    const workstations = Array.isArray(data)
-      ? data
-      : data.items || data.workstations || [];
-
-    const normalized = workstations.map((w) => ({
-      members: Array.isArray(w.members) ? w.members : [],
-      status:
-        (w.status || "").toLowerCase() === "online"
-          ? "connected"
-          : (w.status || "").toLowerCase() === "offline"
-            ? "disconnected"
-            : w.status || "disconnected",
-      id: String(w.id || w._id || ""),
-      _id: String(w._id || w.id || ""),
-      name: w.name || "Untitled Workstation",
-      strength: w.description || "",
-      software: Array.isArray(w.software) ? w.software : [],
-      groups: Array.isArray(w.access_groups) ? w.access_groups : [],
-      users: (Array.isArray(w.members) ? w.members : [])
-        .map((memberId) => userMap.get(String(memberId)))
-        .filter(Boolean),
-      usersCount: Array.isArray(w.members) ? w.members.length : 0,
-      currentUser: (Array.isArray(w.members) ? w.members : [])
-        .map((memberId) => userMap.get(String(memberId)))
-        .find(Boolean) || null,
-      online: w.online || ["online", "active", "connected"].includes((w.status || "").toLowerCase()) || false,
-      ipAddress: w.ip_address || w.ipAddress || "",
-      org_id: w.org_id,
-      _isVm: true,
-    }));
-
-    // Merge in templates that are still building (is_ready=false).
-    // Fetch independently so a failure here doesn't break the main workstations list.
-    try {
-      const templatesRes = await apiGet(
-        `/workstations/templates?org_id=${encodeURIComponent(orgId)}`,
-      );
-      const tData = await templatesRes.json();
-      const templates = Array.isArray(tData)
-        ? tData
-        : tData.templates || tData.items || [];
-      const buildingTemplates = templates
-        .filter((t) => t.is_ready === false)
-        .map((t) => ({
-          id: String(t._id || t.id || ""),
-          _id: String(t._id || t.id || ""),
-          name: t.name || "Untitled Template",
-          strength: t.description || "",
-          software: Array.isArray(t.software) ? t.software : [],
-          groups: Array.isArray(t.access_groups) ? t.access_groups : [],
-          members: Array.isArray(t.members) ? t.members : [],
-          users: [],
-          usersCount: Array.isArray(t.members) ? t.members.length : 0,
-          currentUser: null,
-          status: "building",
-          online: false,
-          ipAddress: "",
-          org_id: t.org_id,
-          _isTemplate: true,
-        }));
-
-      // Avoid duplicating: skip templates whose ID already appears in VM rows.
-      const vmIds = new Set(normalized.map((w) => w.id));
-      const newTemplates = buildingTemplates.filter((t) => !vmIds.has(t.id));
-      normalized.unshift(...newTemplates);
-    } catch (e) {
-      console.warn("Could not fetch workstation templates:", e.message);
+    const templatesRes = await apiGet(
+      `/workstations/templates?org_id=${encodeURIComponent(orgId)}`,
+    );
+    if (!templatesRes.ok) {
+      return _resetWorkstations(setAllWorkstations);
     }
+
+    const tData = await templatesRes.json();
+    const templates = Array.isArray(tData)
+      ? tData
+      : tData.templates || tData.items || [];
+    const templateRows = templates
+      .filter((t) => typeof t?.is_ready === "boolean")
+      .map((t) => ({
+        id: String(t._id || t.id || ""),
+        _id: String(t._id || t.id || ""),
+        name: t.name || "Untitled Template",
+        strength: t.description || "",
+        software: Array.isArray(t.software) ? t.software : [],
+        groups: Array.isArray(t.access_groups) ? t.access_groups : [],
+        members: Array.isArray(t.members) ? t.members : [],
+        users: (Array.isArray(t.members) ? t.members : [])
+          .map((memberId) => userMap.get(String(memberId)))
+          .filter(Boolean),
+        usersCount: Array.isArray(t.members) ? t.members.length : 0,
+        currentUser: (Array.isArray(t.members) ? t.members : [])
+          .map((memberId) => userMap.get(String(memberId)))
+          .find(Boolean) || null,
+        status: t.is_ready ? "connected" : "disconnected",
+        online: Boolean(t.is_ready),
+        ipAddress: "",
+        org_id: t.org_id,
+        _isTemplate: true,
+      }));
+    const unavailableTemplates = templateRows.filter((t) => t.status !== "connected");
+    const readyTemplates = templateRows.filter((t) => t.status === "connected");
+    const normalized = [...unavailableTemplates, ...readyTemplates];
 
     setAllWorkstations?.(normalized);
     return normalized;

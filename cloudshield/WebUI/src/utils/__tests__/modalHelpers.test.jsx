@@ -558,12 +558,15 @@ describe("modalHelpers", () => {
   });
 
   describe("fetchWorkstations", () => {
-    const mockWorkstations = [
+    const mockTemplates = [
       {
-        id: "ws1",
+        _id: "ws1",
         name: "Workstation 1",
-        online: true,
-        ip_address: "192.168.1.1",
+        description: "basic",
+        software: [],
+        access_groups: [],
+        members: [],
+        is_ready: true,
         org_id: "org123",
       },
     ];
@@ -571,7 +574,7 @@ describe("modalHelpers", () => {
     it("should fetch and normalize workstations successfully", async () => {
       apiGet.mockResolvedValue({
         ok: true,
-        json: async () => mockWorkstations,
+        json: async () => ({ templates: mockTemplates }),
       });
 
       const result = await fetchWorkstations("org123", "token123");
@@ -580,7 +583,9 @@ describe("modalHelpers", () => {
         id: "ws1",
         name: "Workstation 1",
         online: true,
-        ipAddress: "192.168.1.1",
+        status: "connected",
+        ipAddress: "",
+        _isTemplate: true,
       });
     });
 
@@ -588,7 +593,7 @@ describe("modalHelpers", () => {
       const setAllWorkstations = jest.fn();
       apiGet.mockResolvedValue({
         ok: true,
-        json: async () => mockWorkstations,
+        json: async () => ({ templates: mockTemplates }),
       });
 
       await fetchWorkstations("org123", "token123", setAllWorkstations);
@@ -629,6 +634,37 @@ describe("modalHelpers", () => {
       expect(result).toEqual([]);
     });
 
+    it("should return template rows from /workstations/templates", async () => {
+      apiGet.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          templates: [
+            {
+              _id: "tpl-fallback",
+              name: "Fallback Template",
+              description: "basic",
+              members: [],
+              software: [],
+              access_groups: [],
+              is_ready: false,
+              org_id: "org123",
+            },
+          ],
+        }),
+      });
+
+      const result = await fetchWorkstations("org123", "token123");
+
+      expect(result).toEqual([
+        expect.objectContaining({
+          id: "tpl-fallback",
+          name: "Fallback Template",
+          status: "disconnected",
+          _isTemplate: true,
+        }),
+      ]);
+    });
+
     it("should handle 405 gracefully", async () => {
       apiGet.mockResolvedValue({
         ok: false,
@@ -639,16 +675,19 @@ describe("modalHelpers", () => {
       expect(result).toEqual([]);
     });
 
-    it("should normalize workstations data correctly", async () => {
+    it("should normalize template data correctly", async () => {
       apiGet.mockResolvedValue({
         ok: true,
         json: async () => ({
-          workstations: [
+          templates: [
             {
               _id: "ws2",
               name: "Desktop",
-              status: "online",
-              ipAddress: "10.0.0.1",
+              description: "pro",
+              software: [],
+              access_groups: [],
+              members: [],
+              is_ready: true,
               org_id: "org456",
             },
           ],
@@ -660,8 +699,10 @@ describe("modalHelpers", () => {
         id: "ws2",
         _id: "ws2",
         name: "Desktop",
+        strength: "pro",
+        status: "connected",
         online: true,
-        ipAddress: "10.0.0.1",
+        ipAddress: "",
       });
     });
 
@@ -677,7 +718,7 @@ describe("modalHelpers", () => {
       apiGet.mockResolvedValue({
         ok: true,
         json: async () => ({
-          workstations: [
+          templates: [
             {
               _id: "ws4",
               name: "Designer",
@@ -685,7 +726,7 @@ describe("modalHelpers", () => {
               members: ["user1", "missing-user"],
               access_groups: ["group-1"],
               software: [{ _id: "sw-1", name: "Office" }],
-              status: "online",
+              is_ready: true,
               org_id: "org123",
             },
           ],
@@ -722,121 +763,105 @@ describe("modalHelpers", () => {
       ]);
     });
 
-    it("should preserve failed status and offline fallback", async () => {
-      listUsers.mockResolvedValue([]);
+    it("should default to 'Untitled Template' for missing names", async () => {
       apiGet.mockResolvedValue({
         ok: true,
-        json: async () => ([
-          {
-            id: "ws5",
-            name: "Broken",
-            status: "failed",
-            members: [],
-          },
-        ]),
+        json: async () => ({
+          templates: [{ _id: "ws3", is_ready: false }],
+        }),
       });
 
       const result = await fetchWorkstations("org123", "token123");
-
-      expect(result[0]).toMatchObject({
-        id: "ws5",
-        name: "Broken",
-        status: "failed",
-        online: false,
-        currentUser: null,
-      });
+      expect(result[0].name).toBe("Untitled Template");
     });
 
-    it("should default to 'Untitled Workstation' for missing names", async () => {
+    it("should map not-ready templates to disconnected", async () => {
       apiGet.mockResolvedValue({
         ok: true,
-        json: async () => [{ id: "ws3" }],
-      });
-
-      const result = await fetchWorkstations("org123", "token123");
-      expect(result[0].name).toBe("Untitled Workstation");
-    });
-
-    it("should normalize offline status to disconnected", async () => {
-      apiGet.mockResolvedValue({
-        ok: true,
-        json: async () => [{ id: "ws-off", name: "Offline WS", status: "offline" }],
+        json: async () => ({
+          templates: [{ _id: "ws-off", name: "Offline WS", is_ready: false }],
+        }),
       });
       const result = await fetchWorkstations("org123", "token123");
       expect(result[0].status).toBe("disconnected");
     });
 
-    it("should merge building templates (is_ready=false) at the front of the list", async () => {
-      // First call: /workstations returns empty list
-      // Second call: /workstations/templates returns one building template
-      apiGet
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ items: [] }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            templates: [
-              {
-                _id: "tpl-1",
-                name: "Building WS",
-                description: "in progress",
-                software: ["sw1"],
-                access_groups: ["grp1"],
-                members: ["u1"],
-                is_ready: false,
-                org_id: "org123",
-              },
-            ],
-          }),
-        });
+    it("should return unavailable templates before ready templates", async () => {
+      apiGet.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          templates: [
+            {
+              _id: "tpl-ready",
+              name: "Ready WS",
+              is_ready: true,
+              org_id: "org123",
+            },
+            {
+              _id: "tpl-1",
+              name: "Building WS",
+              description: "in progress",
+              software: ["sw1"],
+              access_groups: ["grp1"],
+              members: ["u1"],
+              is_ready: false,
+              org_id: "org123",
+            },
+          ],
+        }),
+      });
 
       const result = await fetchWorkstations("org123", "token123");
 
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(2);
       expect(result[0]).toMatchObject({
         id: "tpl-1",
         name: "Building WS",
-        status: "building",
+        status: "disconnected",
         online: false,
         _isTemplate: true,
       });
     });
 
-    it("should skip building templates whose id already exists in VM rows", async () => {
-      apiGet
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => [{ _id: "tpl-1", id: "tpl-1", name: "Running WS", status: "active" }],
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({
-            templates: [{ _id: "tpl-1", name: "Building WS", is_ready: false }],
-          }),
-        });
+    it("should map ready templates to connected rows", async () => {
+      apiGet.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          templates: [
+            {
+              _id: "tpl-ready",
+              name: "Ready WS",
+              description: "done",
+              software: [],
+              access_groups: [],
+              members: [],
+              is_ready: true,
+              org_id: "org123",
+            },
+          ],
+        }),
+      });
 
       const result = await fetchWorkstations("org123", "token123");
-      // tpl-1 should appear once only (the VM row, not the template row)
-      expect(result.filter((r) => r.id === "tpl-1")).toHaveLength(1);
-      expect(result[0]._isTemplate).toBeUndefined();
+
+      expect(result).toEqual([
+        expect.objectContaining({
+          id: "tpl-ready",
+          name: "Ready WS",
+          status: "connected",
+          online: true,
+          _isTemplate: true,
+        }),
+      ]);
     });
 
     it("should gracefully handle template fetch failure", async () => {
-      apiGet
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => [{ id: "ws-ok", name: "OK WS", status: "active" }],
-        })
-        .mockRejectedValueOnce(new Error("templates API down"));
+      apiGet.mockRejectedValueOnce(new Error("templates API down"));
 
-      const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       const result = await fetchWorkstations("org123", "token123");
-      // Should still return the VM rows without crashing
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe("ws-ok");
-      consoleWarnSpy.mockRestore();
+      expect(result).toEqual([]);
+      consoleErrorSpy.mockRestore();
     });
   });
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import WorkstationList from "../components/workstations/WorkstationList.jsx";
 import WorkstationModal from "../components/workstations/WorkstationModal.jsx";
@@ -11,7 +11,6 @@ import CreateWorkstationIcon from "../assets/CreateWorkstationIcon.jsx";
 import { WORKSTATION_FILTERS } from "../config/filterConfigs.js";
 import { useClickLogger } from "../hooks/useClickLogger";
 import { useThemeColors } from "../hooks/useThemeColors.js";
-import { trackButton } from "../lib/analytics";
 import DisplayIcon from "../components/common/DisplayIcon/DisplayIcon.jsx";
 import IconSelectionBar from "../components/common/IconSelectionBar.jsx";
 import Checkbox from "../components/common/Checkbox/Checkbox.jsx";
@@ -31,7 +30,44 @@ import { managementToolbarStyles } from "../components/common/styles/managementT
 import { fetchWorkstations } from "../utils/modalHelpers.jsx";
 import Pagination from "../components/common/Pagination/Pagination.jsx";
 import Toast, { useToast } from "../components/common/Toast/Toast.jsx";
-import { apiPost } from "../api/client.js";
+import { apiGet, apiPost } from "../api/client.js";
+
+const POLL_INTERVAL_MS = 2000;
+const TRACKED_WORKSTATIONS_KEY = "tracked_workstation_creations";
+const CONNECTED_STATUSES = new Set(["connected", "active", "online"]);
+
+const isFailedProgress = (progress) => {
+  const normalized = (progress || "").toLowerCase();
+  return (
+    normalized === "failed" ||
+    normalized === "org not found" ||
+    normalized === "template not found" ||
+    normalized === "image not ready" ||
+    normalized.startsWith("failed")
+  );
+};
+
+const isConnectedStatus = (status) =>
+  CONNECTED_STATUSES.has((status || "").toLowerCase());
+
+const readTrackedWorkstations = () => {
+  try {
+    const raw = sessionStorage.getItem(TRACKED_WORKSTATIONS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error("Failed to read tracked workstation jobs:", error);
+    return [];
+  }
+};
+
+const writeTrackedWorkstations = (entries) => {
+  try {
+    sessionStorage.setItem(TRACKED_WORKSTATIONS_KEY, JSON.stringify(entries));
+  } catch (error) {
+    console.error("Failed to persist tracked workstation jobs:", error);
+  }
+};
 
 const styles = {
   ...managementToolbarStyles,
@@ -56,7 +92,6 @@ const styles = {
 
 export const createWorkstationTemplate = async (orgId, payload) => {
   try {
-    const token = localStorage.getItem("jwt");
     const res = await apiPost(`/workstations/templates`, {
         org_id: orgId,
         name: payload.name,
@@ -77,6 +112,7 @@ export default function WorkstationsPage() {
   const location = useLocation();
   const withClickLog = useClickLogger({ page: "workstations" });
   const themeColors = useThemeColors();
+  const pollTimersRef = useRef(new Map());
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [layout, setLayout] = useState("list");
@@ -96,6 +132,158 @@ export default function WorkstationsPage() {
   const { toast, showToast, hideToast } = useToast(6000);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const setTrackedEntries = useCallback((updater) => {
+    const nextEntries =
+      typeof updater === "function" ? updater(readTrackedWorkstations()) : updater;
+    writeTrackedWorkstations(nextEntries);
+    return nextEntries;
+  }, []);
+
+  const mergeTrackedRows = useCallback((serverRows, trackedEntries) => {
+    const merged = [...serverRows];
+
+    trackedEntries.forEach((entry) => {
+      const templateId = entry?.templateId || entry?.row?.id;
+      if (!templateId) return;
+
+      const trackedRow = entry?.row
+        ? {
+            ...entry.row,
+            id: templateId,
+            _id: templateId,
+            _jobId: entry.jobId,
+            _isTemplate: true,
+          }
+        : null;
+      const trackedStatus = entry?.status === "failed" ? "failed" : "building";
+      const index = merged.findIndex(
+        (row) => row.id === templateId || row._id === templateId,
+      );
+
+      if (index >= 0) {
+        const current = merged[index];
+        if (isConnectedStatus(current.status)) return;
+        merged[index] = {
+          ...current,
+          ...(trackedRow || {}),
+          status: trackedStatus,
+          online: false,
+        };
+        return;
+      }
+
+      if (trackedRow) {
+        merged.unshift({
+          ...trackedRow,
+          status: trackedStatus,
+          online: false,
+        });
+      }
+    });
+
+    return merged;
+  }, []);
+
+  const loadRows = useCallback(async () => {
+    const orgId = localStorage.getItem("org_id");
+    const token = localStorage.getItem("jwt");
+    const data = await fetchWorkstations(orgId, token);
+    const trackedEntries = readTrackedWorkstations();
+    const readyTemplateIds = new Set(
+      data
+        .filter((row) => row._isTemplate && isConnectedStatus(row.status))
+        .map((row) => row.id),
+    );
+    const nextTrackedEntries = trackedEntries.filter(
+      (entry) => !readyTemplateIds.has(entry.templateId),
+    );
+    if (nextTrackedEntries.length !== trackedEntries.length) {
+      writeTrackedWorkstations(nextTrackedEntries);
+    }
+    const mergedRows = mergeTrackedRows(data, nextTrackedEntries);
+    setRows(mergedRows);
+    return mergedRows;
+  }, [mergeTrackedRows]);
+
+  const clearPollTimer = useCallback((jobId) => {
+    const timerId = pollTimersRef.current.get(jobId);
+    if (timerId) clearTimeout(timerId);
+    pollTimersRef.current.delete(jobId);
+  }, []);
+
+  const pollCreateJob = useCallback(
+    (jobId, rowId) => {
+      if (!jobId || pollTimersRef.current.has(jobId)) return;
+
+      const tick = async () => {
+        try {
+          const res = await apiGet(`/status/${encodeURIComponent(jobId)}`);
+          const job = await res.json();
+          const jobStatus = (job.status || "").toLowerCase();
+
+          if (jobStatus === "failed" || isFailedProgress(job.progress)) {
+            setRows((prev) =>
+              prev.map((row) =>
+                row.id === rowId ? { ...row, status: "failed", online: false } : row,
+              ),
+            );
+            setTrackedEntries((entries) =>
+              entries.map((entry) =>
+                entry.jobId === jobId || entry.templateId === rowId
+                  ? {
+                      ...entry,
+                      status: "failed",
+                      row: {
+                        ...(entry.row || {}),
+                        id: rowId,
+                        status: "failed",
+                        online: false,
+                      },
+                    }
+                  : entry,
+              ),
+            );
+            clearPollTimer(jobId);
+            return;
+          }
+
+          if (jobStatus === "finished") {
+            clearPollTimer(jobId);
+            const refreshedRows = await loadRows();
+            const isReady = refreshedRows.some(
+              (row) => row.id === rowId && isConnectedStatus(row.status),
+            );
+            if (isReady) {
+              setTrackedEntries((entries) =>
+                entries.filter(
+                  (entry) => entry.jobId !== jobId && entry.templateId !== rowId,
+                ),
+              );
+              return;
+            }
+          } else {
+            setTrackedEntries((entries) =>
+              entries.map((entry) =>
+                entry.jobId === jobId || entry.templateId === rowId
+                  ? { ...entry, status: "building" }
+                  : entry,
+              ),
+            );
+          }
+        } catch (err) {
+          console.error("Failed to poll workstation creation job:", err);
+        }
+
+        const nextTimerId = window.setTimeout(tick, POLL_INTERVAL_MS);
+        pollTimersRef.current.set(jobId, nextTimerId);
+      };
+
+      const timerId = window.setTimeout(tick, POLL_INTERVAL_MS);
+      pollTimersRef.current.set(jobId, timerId);
+    },
+    [clearPollTimer, loadRows, setTrackedEntries],
+  );
+
   useEffect(() => {
     if (location.state?.openModal) {
       setOpenModal(true);
@@ -107,14 +295,33 @@ export default function WorkstationsPage() {
   useEffect(() => {
     const loadWorkstations = async () => {
       setLoading(true);
-      const orgId = localStorage.getItem("org_id");
-      const token = localStorage.getItem("jwt");
-      const data = await fetchWorkstations(orgId, token);
-      setRows(data);
+      await loadRows();
       setLoading(false);
     };
     loadWorkstations();
-  }, []);
+  }, [loadRows]);
+
+  useEffect(
+    () => () => {
+      pollTimersRef.current.forEach((timerId) => {
+        if (timerId) clearTimeout(timerId);
+      });
+      pollTimersRef.current.clear();
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const trackedEntries = readTrackedWorkstations();
+    trackedEntries
+      .filter((entry) => entry?.jobId && entry?.status !== "failed")
+      .forEach((entry) => {
+        const templateId = entry.templateId || entry.row?.id;
+        if (templateId) {
+          pollCreateJob(entry.jobId, templateId);
+        }
+      });
+  }, [pollCreateJob]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -198,8 +405,9 @@ export default function WorkstationsPage() {
     const orgId = localStorage.getItem("org_id");
     const created = await createWorkstationTemplate(orgId, payload);
     if (created) {
+      const rowId = created.template_id || created.job_id || `ws-${Date.now()}`;
       const newRow = {
-        id: created.template_id || created.job_id || `ws-${Date.now()}`,
+        id: rowId,
         name: payload.name,
         code: "WS-NEW",
         usersCount: payload.members?.length || 0,
@@ -207,9 +415,26 @@ export default function WorkstationsPage() {
         currentUser: payload.members?.[0] || null,
         lastUsed: "—",
         status: "building",
+        online: false,
+        _jobId: created.job_id,
         _isTemplate: true,
       };
       setRows((prev) => [newRow, ...prev]);
+      if (created.job_id) {
+        setTrackedEntries((entries) => [
+          ...entries.filter(
+            (entry) =>
+              entry.jobId !== created.job_id && entry.templateId !== rowId,
+          ),
+          {
+            templateId: rowId,
+            jobId: created.job_id,
+            status: "building",
+            row: newRow,
+          },
+        ]);
+      }
+      pollCreateJob(created.job_id, rowId);
     }
     return Boolean(created);
   };
@@ -227,36 +452,27 @@ export default function WorkstationsPage() {
       ),
     );
   const handleDelete = (id) => {
-    if (window.confirm("Delete this workstation?"))
+    if (window.confirm("Delete this workstation?")) {
       setRows((prev) => prev.filter((r) => r.id !== id));
+      setTrackedEntries((entries) =>
+        entries.filter((entry) => entry.templateId !== id && entry.row?.id !== id),
+      );
+    }
   };
-  const handleToggleStatus = (id) =>
-    setRows((prev) =>
-      prev.map((r) => {
-        if (r.id !== id) return r;
-        if (["building", "provisioning"].includes((r.status || "").toLowerCase())) return r;
-        return {
-          ...r,
-          status: r.status === "connected" ? "disconnected" : "connected",
-        };
-      }),
-    );
 
   const handleRefresh = useCallback(async () => {
     setError("");
     setLoading(true);
     try {
       await safeAsync(async () => {
-        const orgId = localStorage.getItem("org_id");
-        const token = localStorage.getItem("jwt");
-        setRows(await fetchWorkstations(orgId, token));
+        await loadRows();
       });
     } catch (err) {
       setError(getUserErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadRows]);
 
   const selectedCount = useMemo(
     () => filtered.filter((r) => selectedIds.has(r.id)).length,
@@ -372,7 +588,6 @@ export default function WorkstationsPage() {
                       setOpenModal(true);
                     }}
                     onDelete={handleDelete}
-                    onToggleStatus={handleToggleStatus}
                     selectedIds={selectedIds}
                     allVisibleSelected={allVisibleSelected}
                     isIndeterminate={isIndeterminate}
@@ -513,10 +728,7 @@ export default function WorkstationsPage() {
                       )}
 
                       <div style={styles.iconStatusRow}>
-                        <StatusButton
-                          status={row.status}
-                          onClick={() => handleToggleStatus(row.id)}
-                        />
+                        <StatusButton status={row.status} />
                         <ActiveIcon
                           width={12}
                           height={12}
