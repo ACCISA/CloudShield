@@ -1,8 +1,8 @@
-import { app, BrowserWindow, ipcMain, dialog, Tray, Menu } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, Tray, Menu, nativeImage } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
-import { spawn, spawnSync } from "child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { list } from "regedit-rs";
 import { OVPNPathResult } from "./models/OVPNPathResult.ts";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,6 +27,74 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, "public")
   : RENDERER_DIST;
 
+const CLOUDSHIELD_LOGO_SVG_PATH = path.join(
+  process.env.VITE_PUBLIC,
+  "cloudshield_logo.svg",
+);
+
+const CLOUDSHIELD_LOGO_SOURCE_SVG_PATH = path.join(
+  process.env.APP_ROOT,
+  "src",
+  "assets",
+  "cloudShieldLogo.svg",
+);
+
+const CLOUDSHIELD_LOGO_PNG_PATH = path.join(
+  process.env.APP_ROOT,
+  "src",
+  "assets",
+  "cloudshield_logo_white.png",
+);
+
+const CLOUDSHIELD_SVG_PATHS = [
+  CLOUDSHIELD_LOGO_SVG_PATH,
+  CLOUDSHIELD_LOGO_SOURCE_SVG_PATH,
+];
+
+const createNativeImageFromSvgFile = (svgPath: string) => {
+  try {
+    if (!svgPath || !fs.existsSync(svgPath)) return null;
+    const svgMarkup = fs.readFileSync(svgPath, "utf8");
+    if (!svgMarkup) return null;
+
+    const dataUrl = `data:image/svg+xml;base64,${Buffer.from(svgMarkup).toString("base64")}`;
+    const icon = nativeImage.createFromDataURL(dataUrl);
+    return icon.isEmpty() ? null : icon;
+  } catch {
+    return null;
+  }
+};
+
+const createNativeImageFromPathList = (paths: string[]) => {
+  for (const candidatePath of paths) {
+    if (!candidatePath) continue;
+    const icon = nativeImage.createFromPath(candidatePath);
+    if (!icon.isEmpty()) return icon;
+  }
+
+  return null;
+};
+
+const getCloudshieldNativeIcon = (width?: number, height?: number) => {
+  let icon = null;
+
+  for (const svgPath of CLOUDSHIELD_SVG_PATHS) {
+    icon = createNativeImageFromSvgFile(svgPath);
+    if (icon) break;
+  }
+
+  icon ??= createNativeImageFromPathList(CLOUDSHIELD_SVG_PATHS);
+  icon ??= createNativeImageFromPathList([CLOUDSHIELD_LOGO_PNG_PATH]);
+
+  if (!icon) return null;
+
+  if (typeof width === "number" && typeof height === "number") {
+    return icon.resize({ width, height, quality: "best" });
+  }
+
+  return icon;
+};
+
 let win: BrowserWindow | null;
 let appIcon: Tray | null = null;
 let isQuitting = false;
@@ -48,12 +116,7 @@ const showMainWindow = () => {
 function createWindow() {
   win = new BrowserWindow({
     minWidth: 980,
-    icon: path.join(
-      process.env.APP_ROOT,
-      "src",
-      "assets",
-      "cloudshield_logo_white.png",
-    ),
+    icon: getCloudshieldNativeIcon() ?? undefined,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       sandbox: false,
@@ -577,17 +640,25 @@ app.on("activate", () => {
 });
 
 app.whenReady().then(() => {
-  appIcon = new Tray(
-    path.join(
-      process.env.APP_ROOT,
-      "src",
-      "assets",
-      "cloudshield_logo_white.png",
-    ),
-  );
-  appIcon.on("click", () => {
-    showMainWindow();
-  });
-  refreshTrayMenu();
+  if (process.platform === "darwin") {
+    const dockIcon = getCloudshieldNativeIcon(128, 128);
+    if (dockIcon) {
+      app.dock.setIcon(dockIcon);
+    }
+  }
+
+  const trayIcon =
+    process.platform === "darwin"
+      ? getCloudshieldNativeIcon(18, 18)
+      : getCloudshieldNativeIcon();
+
+  if (trayIcon) {
+    appIcon = new Tray(trayIcon);
+    appIcon.on("click", () => {
+      showMainWindow();
+    });
+    refreshTrayMenu();
+  }
+
   createWindow();
 });

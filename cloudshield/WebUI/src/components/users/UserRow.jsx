@@ -233,7 +233,7 @@ export default function UserRow({
           <ActiveIcon
             width={12}
             height={12}
-            outerColor={data.status === "online" ? "#1F381F" : "#381F1F"}
+            outerColor={data.status === "online" ? "rgba(4, 196, 10, 0.2)" : "rgba(255, 82, 82, 0.2)"}
             innerColor={data.status === "online" ? "#04C40A" : "#ff5252"}
           />
         </div>

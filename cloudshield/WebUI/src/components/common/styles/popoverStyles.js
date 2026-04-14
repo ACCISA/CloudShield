@@ -12,14 +12,15 @@ export const getButtonStyle = (themeColors) => ({
   gap: "8px",
   minWidth: "120px",
   height: "48px",
-  border: `1px solid ${themeColors.borderLight}`,
+  border: `1px solid ${themeColors.border}`,
   borderRadius: "8px",
   cursor: "pointer",
   fontSize: "16px",
   fontWeight: "500",
   color: themeColors.text,
   transition: "all 0.2s ease",
-  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+  // Subtle shadow in dark mode only — flat in light mode (Apple/modern pattern)
+  boxShadow: themeColors.isDark ? "0 1px 3px rgba(0, 0, 0, 0.3)" : "none",
   position: "relative",
   backgroundColor: themeColors.bgSecondary,
 });
@@ -40,7 +41,6 @@ export const buttonStyle = {
   fontWeight: "500",
   color: "#ffffff",
   transition: "all 0.2s ease",
-  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
   position: "relative",
 };
 
@@ -52,7 +52,10 @@ export const getPopoverStyle = (themeColors, width = "320px") => ({
   borderRadius: "16px",
   width,
   marginTop: "8px",
-  boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+  // Subtle shadow: light mode uses a gentle drop shadow; dark mode uses deeper
+  boxShadow: themeColors.isDark
+    ? "0 8px 24px rgba(0,0,0,0.4)"
+    : "0 4px 16px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.06)",
   padding: "16px",
   zIndex: 1300,
 });

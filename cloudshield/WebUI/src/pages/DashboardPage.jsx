@@ -219,29 +219,29 @@ export default function DashboardPage() {
           <StatCard
             title="Users"
             value={stats.users ?? (statsLoading ? "…" : 0)}
-            gradientFrom="#6a4fcf"
-            gradientTo="#ad8bff"
+            gradientFrom={themeColors.isLight ? "#C4B5FD" : "#6a4fcf"}
+            gradientTo={themeColors.isLight ? "#C4B5FD" : "#ad8bff"}
             onAdd={handleAddUser}
           />
           <StatCard
             title="Workstations"
             value={stats.workstations ?? (statsLoading ? "…" : 0)}
-            gradientFrom="#c94b4b"
-            gradientTo="#de6f6f"
+            gradientFrom={themeColors.isLight ? "#FCA5A5" : "#c94b4b"}
+            gradientTo={themeColors.isLight ? "#FCA5A5" : "#de6f6f"}
             onAdd={handleAddWorkstation}
           />
           <StatCard
             title="Groups"
             value={stats.groups ?? (statsLoading ? "…" : 0)}
-            gradientFrom="#2656d8"
-            gradientTo="#4d7fff"
+            gradientFrom={themeColors.isLight ? "#93C5FD" : "#2656d8"}
+            gradientTo={themeColors.isLight ? "#93C5FD" : "#4d7fff"}
             onAdd={handleAddGroup}
           />
           <StatCard
             title="Shares"
             value={statsLoading ? "…" : (stats.shares ?? 0)}
-            gradientFrom="#c57a1c"
-            gradientTo="#f0a24f"
+            gradientFrom={themeColors.isLight ? "#FCD34D" : "#c57a1c"}
+            gradientTo={themeColors.isLight ? "#FCD34D" : "#f0a24f"}
             onAdd={handleAddFile}
           />
         </Box>

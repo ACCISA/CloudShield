@@ -1,5 +1,11 @@
 import React from "react";
-import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  act,
+  waitFor,
+} from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { ThemeProvider_Custom, useAppTheme } from "../ThemeContext";
 
@@ -167,13 +173,15 @@ describe("ThemeContext", () => {
 
     await waitFor(() => {
       expect(root.style.getPropertyValue("--bg-primary")).toBe("#FFFFFF");
-      expect(root.style.getPropertyValue("--input-bg")).toBe("#FAFAFA");
+      expect(root.style.getPropertyValue("--input-bg")).toBe("#F9FAFB");
       expect(document.body.style.backgroundColor).toBe("rgb(255, 255, 255)");
     });
   });
 
   it("throws when useAppTheme is used outside ThemeProvider_Custom", () => {
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
 
     function OutsideConsumer() {
       useAppTheme();

@@ -194,14 +194,14 @@ function getStatusLightColors(status) {
   const normalized = (status || "").toLowerCase();
 
   if (["connected", "active", "online"].includes(normalized)) {
-    return { outerColor: "#1F381F", innerColor: "#04C40A" };
+    return { outerColor: "rgba(4, 196, 10, 0.2)", innerColor: "#04C40A" };
   }
 
   if (normalized === "provisioning" || normalized === "building") {
-    return { outerColor: "#3F2A08", innerColor: "#F0B429" };
+    return { outerColor: "rgba(240, 180, 41, 0.2)", innerColor: "#F0B429" };
   }
 
-  return { outerColor: "#381F1F", innerColor: "#ff5252" };
+  return { outerColor: "rgba(255, 82, 82, 0.2)", innerColor: "#ff5252" };
 }
 
 function getColumnTemplate({

@@ -4,7 +4,7 @@ export default function UsersIcon({
   height = 14,
   className = "",
 }) {
-  const color = selected ? "var(--text-primary)" : "#BCBCBC";
+  const color = selected ? "var(--sidebar-icon-active)" : "#BCBCBC";
   const fillOpacity = selected ? "1" : "0";
 
   return (

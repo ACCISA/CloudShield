@@ -1,28 +1,12 @@
-import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Checkbox,
-  Chip,
-  InputAdornment,
-  IconButton,
-  CircularProgress,
-  Grid,
-  Paper,
-  TablePagination,
-} from "@mui/material";
-import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
-import FilterListOutlinedIcon from "@mui/icons-material/FilterListOutlined";
-import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
-import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
-import NorthEastIcon from "@mui/icons-material/NorthEast";
-import CheckIcon from "@mui/icons-material/Check";
-import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
-import SyncIcon from "@mui/icons-material/Sync";
+import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { useAppTheme } from "../../context/ThemeContext";
+import { useThemeColors } from "../../hooks/useThemeColors.js";
+import SearchField from "../common/SearchField/SearchField.jsx";
+import FilterButton from "../common/FilterButton/FilterButton.jsx";
+import Pagination from "../common/Pagination/Pagination.jsx";
+import Checkbox from "../common/Checkbox/Checkbox.jsx";
+import { createFilterChangeHandler } from "../../utils/filterHelpers.js";
+import { BILLING_FILTERS } from "../../config/filterConfigs.js";
 
 const API_BASE_URL = "http://localhost:5050";
 
@@ -62,44 +46,60 @@ const PLAN_OPTIONS = [
 ];
 
 function BillingDisabled() {
-  const theme = useAppTheme();
+  const themeColors = useThemeColors();
   return (
-    <Box sx={{ pb: 4 }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          sx={{
-            color: "text.primary",
+    <div style={{ paddingBottom: 32 }}>
+      <div style={{ marginBottom: 32 }}>
+        <p
+          style={{
+            color: themeColors.textPrimary,
             fontWeight: 700,
             fontSize: "1.3rem",
-            mb: 0.5,
+            margin: "0 0 4px 0",
           }}
         >
           Billing Centre
-        </Typography>
-        <Typography sx={{ color: "text.secondary", fontSize: "0.9rem" }}>
+        </p>
+        <p
+          style={{
+            color: themeColors.textSecondary,
+            fontSize: "0.9rem",
+            margin: 0,
+          }}
+        >
           Manage your plan and billing details
-        </Typography>
-      </Box>
-      <Box
-        sx={{
-          p: 4,
+        </p>
+      </div>
+      <div
+        style={{
+          padding: 32,
           borderRadius: "16px",
           border: "1px dashed rgba(250, 204, 21, 0.3)",
-          bgcolor: "rgba(250, 204, 21, 0.04)",
+          backgroundColor: "rgba(250, 204, 21, 0.04)",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 1.5,
+          gap: 12,
           textAlign: "center",
         }}
       >
-        <Typography
-          sx={{ color: "#facc15", fontWeight: 700, fontSize: "1rem" }}
+        <p
+          style={{
+            color: "#facc15",
+            fontWeight: 700,
+            fontSize: "1rem",
+            margin: 0,
+          }}
         >
           Billing is disabled
-        </Typography>
-        <Typography
-          sx={{ color: "text.secondary", fontSize: "0.875rem", maxWidth: 480 }}
+        </p>
+        <p
+          style={{
+            color: themeColors.textSecondary,
+            fontSize: "0.875rem",
+            maxWidth: 480,
+            margin: 0,
+          }}
         >
           Stripe integration is currently bypassed (
           <code style={{ color: "rgba(255,255,255,0.6)" }}>
@@ -108,14 +108,14 @@ function BillingDisabled() {
           ). Set it to{" "}
           <code style={{ color: "rgba(255,255,255,0.6)" }}>false</code> and
           configure your Stripe keys and webhook to enable billing.
-        </Typography>
-      </Box>
-    </Box>
+        </p>
+      </div>
+    </div>
   );
 }
 
 export default function BillingTab() {
-  const theme = useAppTheme();
+  const themeColors = useThemeColors();
   const { user, refreshUser } = useAuth();
   const [invoices, setInvoices] = useState([]);
   const [card, setCard] = useState(null);
@@ -124,8 +124,11 @@ export default function BillingTab() {
   const [isSyncing, setIsSyncing] = useState(false);
   const orgId = localStorage.getItem("org_id");
 
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilters, setActiveFilters] = useState({ status: new Set() });
+  const [selectedInvoices, setSelectedInvoices] = useState(new Set());
+  const itemsPerPage = 5;
 
   const fetchData = async () => {
     try {
@@ -200,10 +203,51 @@ export default function BillingTab() {
     }
   };
 
-  const handleChangePage = (event, newPage) => setPage(newPage);
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+  const handleFilterChange = createFilterChangeHandler(setActiveFilters);
+
+  const filteredInvoices = useMemo(() => {
+    let result = invoices;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (inv) =>
+          (inv.plan || "").toLowerCase().includes(q) ||
+          (inv.amount || "").toLowerCase().includes(q) ||
+          (inv.date || "").toLowerCase().includes(q),
+      );
+    }
+    if (activeFilters.status?.size > 0) {
+      result = result.filter((inv) =>
+        activeFilters.status.has((inv.status || "paid").toLowerCase()),
+      );
+    }
+    return result;
+  }, [invoices, searchQuery, activeFilters]);
+
+  const paginatedInvoices = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredInvoices.slice(start, start + itemsPerPage);
+  }, [filteredInvoices, currentPage]);
+
+  const allInvoicesSelected =
+    paginatedInvoices.length > 0 &&
+    paginatedInvoices.every((inv) => selectedInvoices.has(inv.id));
+  const isInvoiceIndeterminate =
+    !allInvoicesSelected &&
+    paginatedInvoices.some((inv) => selectedInvoices.has(inv.id));
+
+  const handleToggleSelectAll = () => {
+    if (selectedInvoices.size > 0) {
+      setSelectedInvoices(new Set());
+    } else {
+      setSelectedInvoices(new Set(paginatedInvoices.map((inv) => inv.id)));
+    }
+  };
+
+  const handleToggleSelect = (id) => {
+    const next = new Set(selectedInvoices);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelectedInvoices(next);
   };
 
   const activePackage = card?.package || user?.package || "basic";
@@ -213,565 +257,456 @@ export default function BillingTab() {
     : null;
   const currentPlan =
     PLAN_OPTIONS.find((p) => p.id === activePackage) || PLAN_OPTIONS[0];
-  const displayedInvoices = invoices.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage,
-  );
-
   if (BYPASS_STRIPE) return <BillingDisabled />;
 
   return (
-    <Box sx={{ pb: 4 }}>
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          sx={{
-            color: "text.primary",
-            fontWeight: 700,
-            fontSize: "1.3rem",
-            mb: 0.5,
+    <div style={{ paddingBottom: 48 }}>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .billing-upgrade-btn:hover { opacity: 0.88; }
+        .billing-cancel-link:hover { opacity: 1 !important; }
+        .billing-edit-btn:hover { opacity: 0.82; }
+        .billing-download-btn:hover { color: var(--text-primary) !important; }
+        .billing-invoice-row:hover { background: ${themeColors.lightOverlay} !important; }
+      `}</style>
+
+      {/* Header */}
+      <div style={{ marginBottom: 40 }}>
+        <p style={{ color: themeColors.textPrimary, fontWeight: 700, fontSize: "1.45rem", margin: "0 0 6px 0", letterSpacing: "-0.3px" }}>
+          Billing
+        </p>
+        <p style={{ color: themeColors.textSecondary, fontSize: "0.9rem", margin: 0, lineHeight: 1.5 }}>
+          Manage your plan and payment details
+        </p>
+      </div>
+
+      {/* Two-column card row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 40 }}>
+
+        {/* Plan card */}
+        <div
+          style={{
+            padding: "32px 28px",
+            backgroundColor: themeColors.surface,
+            borderRadius: "20px",
+            border: `1px solid ${themeColors.borderLight}`,
+            display: "flex",
+            flexDirection: "column",
+            position: "relative",
+            overflow: "hidden",
+            gap: 0,
           }}
         >
-          Billing Centre
-        </Typography>
-        <Typography sx={{ color: "text.secondary", fontSize: "0.9rem" }}>
-          Manage your plan and billing details
-        </Typography>
-      </Box>
-
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={6}>
-          <Paper
-            sx={{
-              p: 3,
-              bgcolor: "background.paper",
-              borderRadius: "16px",
-              border: "1px solid",
-              borderColor: "divider",
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            {isSyncing && (
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  bgcolor: "rgba(10,10,10,0.85)",
-                  zIndex: 10,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backdropFilter: "blur(4px)",
-                }}
-              >
-                <SyncIcon
-                  sx={{
-                    color: "#4ade80",
-                    fontSize: "2.5rem",
-                    mb: 2,
-                    animation: "spin 2s linear infinite",
-                    "@keyframes spin": {
-                      "0%": { transform: "rotate(0deg)" },
-                      "100%": { transform: "rotate(360deg)" },
-                    },
-                  }}
-                />
-                <Typography
-                  sx={{
-                    color: "text.primary",
-                    fontWeight: 700,
-                    fontSize: "1.1rem",
-                  }}
-                >
-                  Syncing with Stripe...
-                </Typography>
-              </Box>
-            )}
-
-            <Box>
-              <Box
-                sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}
-              >
-                <Typography
-                  variant="h6"
-                  sx={{ color: "text.primary", fontWeight: 700 }}
-                >
-                  {currentPlan.name} plan
-                </Typography>
-                <Chip
-                  label={subStatus === "canceled" ? "Canceled" : "Active"}
-                  size="small"
-                  sx={{
-                    height: 22,
-                    bgcolor:
-                      subStatus === "canceled"
-                        ? "rgba(239, 68, 68, 0.15)"
-                        : "#fff",
-                    color: subStatus === "canceled" ? "#ef4444" : "#000",
-                    fontWeight: 800,
-                    fontSize: "0.65rem",
-                    border:
-                      subStatus === "canceled"
-                        ? "1px solid rgba(239, 68, 68, 0.3)"
-                        : "none",
-                  }}
-                />
-              </Box>
-              {subStatus === "canceled" ? (
-                <Typography
-                  sx={{
-                    color: "#ef4444",
-                    fontSize: "0.85rem",
-                    lineHeight: 1.5,
-                    fontWeight: 500,
-                  }}
-                >
-                  Your subscription was canceled. Access remains until{" "}
-                  {cancelDate || "the end of the billing period"}. Upgrade to
-                  reactivate.
-                </Typography>
-              ) : (
-                <Typography
-                  sx={{
-                    color: "text.secondary",
-                    fontSize: "0.85rem",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {currentPlan.description}
-                </Typography>
-              )}
-            </Box>
-
-            <Box
-              sx={{
+          {isSyncing && (
+            <div
+              style={{
+                position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: themeColors.surface,
+                opacity: 0.96,
+                zIndex: 10,
                 display: "flex",
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "flex-end",
-                mt: "auto",
-                pt: 3,
-                gap: 2,
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "baseline" }}>
-                <Typography
-                  variant="h3"
-                  sx={{ color: "text.primary", fontWeight: 800, lineHeight: 1 }}
-                >
-                  ${currentPlan.price}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: "0.85rem",
-                    color: "text.secondary",
-                    fontWeight: 500,
-                    ml: 1,
-                  }}
-                >
-                  / month
-                </Typography>
-              </Box>
-
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-end",
-                  gap: 1,
-                }}
-              >
-                <Button
-                  variant="contained"
-                  onClick={handleManageBilling}
-                  endIcon={
-                    <NorthEastIcon sx={{ fontSize: "1rem !important" }} />
-                  }
-                  sx={{
-                    bgcolor: "#fff",
-                    color: "#000",
-                    borderRadius: "8px",
-                    px: 2.5,
-                    py: 1,
-                    textTransform: "none",
-                    fontWeight: 700,
-                    "&:hover": { bgcolor: "#e5e5e5" },
-                  }}
-                >
-                  {subStatus === "canceled"
-                    ? "Reactivate plan"
-                    : "Upgrade plan"}
-                </Button>
-
-                {subStatus !== "canceled" && (
-                  <Typography
-                    onClick={handleManageBilling}
-                    sx={{
-                      cursor: portalLoading ? "not-allowed" : "pointer",
-                      fontSize: "0.78rem",
-                      color: "rgba(239, 68, 68, 0.6)",
-                      fontWeight: 500,
-                      userSelect: "none",
-                      transition: "color 0.15s",
-                      "&:hover": { color: "#ef4444" },
-                    }}
-                  >
-                    {portalLoading ? "Loading..." : "Cancel subscription"}
-                  </Typography>
-                )}
-              </Box>
-            </Box>
-          </Paper>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Paper
-            sx={{
-              p: 3,
-              bgcolor: "background.paper",
-              borderRadius: "16px",
-              border: "1px solid",
-              borderColor: "divider",
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <Box>
-              <Typography
-                variant="h6"
-                sx={{ color: "text.primary", fontWeight: 700, mb: 0.5 }}
-              >
-                Payment method
-              </Typography>
-              <Typography
-                sx={{ color: "text.secondary", fontSize: "0.85rem", mb: 2 }}
-              >
-                Change how you pay for your plan
-              </Typography>
-            </Box>
-
-            <Box
-              sx={{
-                p: 2,
-                borderRadius: "12px",
-                border: "1px solid",
-                borderColor: "divider",
-                display: "flex",
-                flexDirection: "row",
+                flexDirection: "column",
                 alignItems: "center",
-                justifyContent: "space-between",
-                bgcolor: "background.default",
-                mt: "auto",
-                gap: 2,
+                justifyContent: "center",
+                backdropFilter: "blur(4px)",
+                gap: 14,
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    color: "text.secondary",
-                    bgcolor: "action.hover",
-                    p: 1,
-                    borderRadius: "8px",
-                  }}
-                >
-                  <CreditCardOutlinedIcon sx={{ fontSize: "1.6rem" }} />
-                </Box>
-                <Box>
-                  <Typography
-                    sx={{
-                      color: "text.primary",
-                      fontWeight: 600,
-                      fontSize: "0.95rem",
-                      display: "flex",
-                      alignItems: "center",
-                      flexWrap: "wrap",
-                      gap: 1,
-                    }}
-                  >
-                    {card && card.brand
-                      ? `Card •••• ${card.last4}`
-                      : "No card on file"}
-                    {card && card.brand && (
-                      <Chip
-                        label="Default"
-                        size="small"
-                        sx={{
-                          height: 20,
-                          fontSize: "0.6rem",
-                          bgcolor: "action.hover",
-                          color: "text.primary",
-                          fontWeight: 600,
-                        }}
-                      />
-                    )}
-                  </Typography>
-                  <Typography
-                    sx={{
-                      color: "text.secondary",
-                      fontSize: "0.75rem",
-                      mt: 0.3,
-                    }}
-                  >
-                    {card && card.brand
-                      ? `Expires ${card.exp_month}/${card.exp_year}`
-                      : "Update in billing portal"}
-                  </Typography>
-                </Box>
-              </Box>
-              <Button
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill={themeColors.textSecondary} style={{ animation: "spin 1.4s linear infinite" }}>
+                <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" />
+              </svg>
+              <p style={{ color: themeColors.textPrimary, fontWeight: 600, fontSize: "0.95rem", margin: 0 }}>
+                Syncing with Stripe…
+              </p>
+            </div>
+          )}
+
+          {/* Plan name + badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <span style={{ color: themeColors.textPrimary, fontWeight: 700, fontSize: "1.05rem", letterSpacing: "-0.2px" }}>
+              {currentPlan.name} plan
+            </span>
+            <span
+              style={{
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                letterSpacing: "0.4px",
+                textTransform: "uppercase",
+                padding: "3px 9px",
+                borderRadius: "20px",
+                backgroundColor: subStatus === "canceled" ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)",
+                color: subStatus === "canceled" ? "#ef4444" : "#16a34a",
+                border: subStatus === "canceled" ? "1px solid rgba(239,68,68,0.2)" : "1px solid rgba(34,197,94,0.2)",
+              }}
+            >
+              {subStatus === "canceled" ? "Canceled" : "Active"}
+            </span>
+          </div>
+
+          {/* Description */}
+          {subStatus === "canceled" ? (
+            <p style={{ color: "#ef4444", fontSize: "0.85rem", lineHeight: 1.6, fontWeight: 500, margin: "0 0 28px 0" }}>
+              Access remains until {cancelDate || "end of billing period"}. Upgrade to reactivate.
+            </p>
+          ) : (
+            <p style={{ color: themeColors.textSecondary, fontSize: "0.875rem", lineHeight: 1.6, margin: "0 0 28px 0" }}>
+              {currentPlan.description}
+            </p>
+          )}
+
+          {/* Price + actions */}
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginTop: "auto" }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+              <span style={{ color: themeColors.textPrimary, fontWeight: 800, fontSize: "2.4rem", lineHeight: 1, letterSpacing: "-1px" }}>
+                ${currentPlan.price}
+              </span>
+              <span style={{ fontSize: "0.85rem", color: themeColors.textSecondary, fontWeight: 500, marginLeft: 2 }}>
+                / mo
+              </span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+              <button
+                className="billing-upgrade-btn"
                 onClick={handleManageBilling}
                 disabled={portalLoading}
-                sx={{
-                  height: 36,
-                  minWidth: 70,
-                  color: "background.default",
-                  bgcolor: "text.primary",
-                  borderRadius: "8px",
-                  textTransform: "none",
+                style={{
+                  backgroundColor: themeColors.textPrimary,
+                  color: themeColors.bgPrimary,
+                  borderRadius: "12px",
+                  padding: "10px 22px",
+                  border: "none",
                   fontWeight: 700,
-                  px: 2,
-                  "&:hover": { bgcolor: "text.secondary" },
+                  cursor: portalLoading ? "not-allowed" : "pointer",
+                  fontSize: "0.875rem",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 7,
+                  transition: "opacity 0.15s",
+                  letterSpacing: "-0.1px",
                 }}
               >
-                {portalLoading ? "..." : "Edit"}
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
+                {subStatus === "canceled" ? "Reactivate" : "Upgrade plan"}
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
 
-      <Box
-        sx={{
-          bgcolor: "background.paper",
-          border: "1px solid",
-          borderColor: "divider",
-          borderRadius: "16px",
+              {subStatus !== "canceled" && (
+                <button
+                  className="billing-cancel-link"
+                  onClick={handleManageBilling}
+                  disabled={portalLoading}
+                  style={{
+                    cursor: portalLoading ? "not-allowed" : "pointer",
+                    fontSize: "0.78rem",
+                    color: themeColors.textSecondary,
+                    fontWeight: 500,
+                    userSelect: "none",
+                    opacity: 0.65,
+                    transition: "opacity 0.15s",
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                  }}
+                >
+                  {portalLoading ? "Loading…" : "Cancel subscription"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Payment method card */}
+        <div
+          style={{
+            padding: "32px 28px",
+            backgroundColor: themeColors.surface,
+            borderRadius: "20px",
+            border: `1px solid ${themeColors.borderLight}`,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <p style={{ color: themeColors.textPrimary, fontWeight: 700, fontSize: "1.05rem", letterSpacing: "-0.2px", margin: "0 0 6px 0" }}>
+            Payment method
+          </p>
+          <p style={{ color: themeColors.textSecondary, fontSize: "0.875rem", margin: "0 0 24px 0", lineHeight: 1.5 }}>
+            Change how you pay for your plan
+          </p>
+
+          <div
+            style={{
+              padding: "18px 20px",
+              borderRadius: "14px",
+              border: `1px solid ${themeColors.borderLight}`,
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              backgroundColor: themeColors.bgPrimary,
+              marginTop: "auto",
+              gap: 16,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  color: themeColors.textSecondary,
+                  backgroundColor: themeColors.lightOverlay,
+                  padding: "9px",
+                  borderRadius: "10px",
+                }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" />
+                </svg>
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                  <span style={{ color: themeColors.textPrimary, fontWeight: 600, fontSize: "0.925rem" }}>
+                    {card && card.brand ? `•••• ${card.last4}` : "No card on file"}
+                  </span>
+                  {card && card.brand && (
+                    <span style={{
+                      fontSize: "0.62rem",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.4px",
+                      backgroundColor: themeColors.lightOverlay,
+                      color: themeColors.textSecondary,
+                      padding: "2px 7px",
+                      borderRadius: "20px",
+                    }}>
+                      Default
+                    </span>
+                  )}
+                </div>
+                <p style={{ color: themeColors.textSecondary, fontSize: "0.78rem", margin: 0 }}>
+                  {card && card.brand
+                    ? `Expires ${card.exp_month}/${card.exp_year}`
+                    : "Update in billing portal"}
+                </p>
+              </div>
+            </div>
+
+            <button
+              className="billing-edit-btn"
+              onClick={handleManageBilling}
+              disabled={portalLoading}
+              style={{
+                height: 36,
+                minWidth: 64,
+                color: themeColors.bgPrimary,
+                backgroundColor: themeColors.textPrimary,
+                borderRadius: "10px",
+                border: "none",
+                fontWeight: 700,
+                padding: "0 18px",
+                cursor: portalLoading ? "not-allowed" : "pointer",
+                fontSize: "0.85rem",
+                transition: "opacity 0.15s",
+                letterSpacing: "-0.1px",
+              }}
+            >
+              {portalLoading ? "…" : "Edit"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Billing History */}
+      <div
+        style={{
+          backgroundColor: themeColors.surface,
+          border: `1px solid ${themeColors.borderLight}`,
+          borderRadius: "20px",
           overflow: "hidden",
+          marginBottom: 16,
         }}
       >
-        <Box
-          sx={{
+        {/* Toolbar */}
+        <div
+          style={{
             display: "flex",
-            flexDirection: "row",
             alignItems: "center",
-            p: "16px 24px",
-            borderBottom: "1px solid",
-            borderBottomColor: "divider",
-            gap: 2,
+            justifyContent: "space-between",
+            padding: "22px 24px 16px",
+            borderBottom: `1px solid ${themeColors.borderLight}`,
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <AccessTimeOutlinedIcon
-              sx={{ fontSize: "1.2rem", mr: 1.5, color: "text.secondary" }}
-            />
-            <Typography
-              sx={{
-                color: "text.primary",
-                fontWeight: 700,
-                fontSize: "0.95rem",
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ color: themeColors.textPrimary, fontWeight: 700, fontSize: "1rem", letterSpacing: "-0.2px" }}>
+              Billing history
+            </span>
+            <span
+              style={{
+                backgroundColor: themeColors.lightOverlay,
+                color: themeColors.textSecondary,
+                fontSize: "0.75rem",
+                fontWeight: 600,
+                padding: "2px 9px",
+                borderRadius: "20px",
               }}
             >
-              Billing History
-            </Typography>
-          </Box>
-          <Box sx={{ ml: "auto", display: "flex", gap: 1.5, width: "auto" }}>
-            <TextField
-              placeholder="Search Invoices"
-              size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchOutlinedIcon
-                      sx={{ color: "#555", fontSize: "1.1rem" }}
-                    />
-                  </InputAdornment>
-                ),
+              {filteredInvoices.length}
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <SearchField
+              placeholder="Search invoices"
+              value={searchQuery}
+              onChange={(val) => {
+                setSearchQuery(val);
+                setCurrentPage(1);
               }}
-              sx={{
-                flexGrow: 1,
-                "& .MuiOutlinedInput-root": {
-                  bgcolor: "transparent",
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: "8px",
-                  color: "text.primary",
-                  fontSize: "0.85rem",
-                },
-              }}
+              width="220px"
             />
-            <Button
-              startIcon={<FilterListOutlinedIcon />}
-              sx={{
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "#ccc",
-                textTransform: "none",
-                borderRadius: "8px",
-                px: 2,
-                fontSize: "0.85rem",
-              }}
-            >
-              Filter
-            </Button>
-          </Box>
-        </Box>
+            <FilterButton
+              filterGroups={BILLING_FILTERS}
+              activeFilters={activeFilters}
+              onFilterChange={handleFilterChange}
+            />
+          </div>
+        </div>
 
-        <Box
-          sx={{
-            height: "285px",
-            overflowX: "auto",
-            overflowY: "auto",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-            "&::-webkit-scrollbar": { width: "6px", height: "6px" },
-            "&::-webkit-scrollbar-track": { background: "transparent" },
-            "&::-webkit-scrollbar-thumb": {
-              backgroundColor: "rgba(255,255,255,0.15)",
-              borderRadius: "10px",
-            },
-            "&::-webkit-scrollbar-thumb:hover": {
-              backgroundColor: "rgba(255,255,255,0.25)",
-            },
+        {/* Column header */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "40px 1fr 140px 180px 110px 44px",
+            padding: "10px 24px",
+            alignItems: "center",
           }}
         >
-          <Box sx={{ minWidth: 800 }}>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "40px 1fr 180px 220px 140px 40px",
-                px: "24px",
-                py: "12px",
-                bgcolor: "#0A0A0A",
-                position: "sticky",
-                top: 0,
-                zIndex: 10,
-                borderBottom: "1px solid rgba(255,255,255,0.06)",
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Checkbox
+              checked={allInvoicesSelected}
+              indeterminate={isInvoiceIndeterminate}
+              onChange={handleToggleSelectAll}
+            />
+          </div>
+          {["Invoice", "Amount", "Date", "Status", ""].map((h) => (
+            <span
+              key={h}
+              style={{
+                color: themeColors.textSecondary,
+                fontSize: "0.72rem",
+                fontWeight: 600,
+                letterSpacing: "0.6px",
+                textTransform: "uppercase",
               }}
             >
-              <Checkbox size="small" disabled sx={{ p: 0 }} />
-              {["Invoice", "Amount", "Date", "Status", ""].map((h) => (
-                <Typography
-                  key={h}
-                  sx={{
-                    color: "#777",
-                    fontSize: "0.7rem",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.5px",
+              {h}
+            </span>
+          ))}
+        </div>
+
+        {/* Rows */}
+        <div style={{ display: "flex", flexDirection: "column", minHeight: 200 }}>
+          {loading ? (
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 200 }}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={themeColors.textSecondary} strokeWidth="2" style={{ animation: "spin 1s linear infinite", opacity: 0.5 }}>
+                <circle cx="12" cy="12" r="10" opacity="0.25" />
+                <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+              </svg>
+            </div>
+          ) : filteredInvoices.length === 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 200, gap: 6 }}>
+              <span style={{ color: themeColors.textPrimary, fontSize: "0.95rem", fontWeight: 600 }}>
+                {invoices.length === 0 ? "No invoices yet" : "No results"}
+              </span>
+              <span style={{ color: themeColors.textSecondary, fontSize: "0.85rem" }}>
+                {invoices.length === 0 ? "Your billing history will appear here" : "Try adjusting your search or filters"}
+              </span>
+            </div>
+          ) : (
+            paginatedInvoices.map((inv) => (
+              <div
+                key={inv.id}
+                className="billing-invoice-row"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "40px 1fr 140px 180px 110px 44px",
+                  padding: "14px 24px",
+                  alignItems: "center",
+                  borderTop: `1px solid ${themeColors.borderLight}`,
+                  transition: "background 0.12s",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Checkbox
+                    checked={selectedInvoices.has(inv.id)}
+                    onChange={() => handleToggleSelect(inv.id)}
+                  />
+                </div>
+                <span style={{ color: themeColors.textPrimary, fontSize: "0.875rem", fontWeight: 500 }}>
+                  {inv.plan}
+                </span>
+                <span style={{ color: themeColors.textPrimary, fontSize: "0.875rem", fontWeight: 600 }}>
+                  {inv.amount}
+                </span>
+                <span style={{ color: themeColors.textSecondary, fontSize: "0.85rem" }}>
+                  {inv.date}
+                </span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    backgroundColor: "rgba(34,197,94,0.08)",
+                    color: "#16a34a",
+                    fontWeight: 600,
+                    border: "1px solid rgba(34,197,94,0.18)",
+                    borderRadius: "20px",
+                    padding: "3px 10px",
+                    fontSize: "0.72rem",
+                    letterSpacing: "0.2px",
+                    width: "fit-content",
+                  }}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                  </svg>
+                  Paid
+                </span>
+                <button
+                  className="billing-download-btn"
+                  onClick={() => window.open(inv.url, "_blank", "noopener,noreferrer")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: themeColors.textSecondary,
+                    padding: 4,
                     display: "flex",
                     alignItems: "center",
+                    transition: "color 0.15s",
+                    opacity: 0.6,
                   }}
                 >
-                  {h}
-                </Typography>
-              ))}
-            </Box>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                  </svg>
+                </button>
+              </div>
+            ))
+          )}
+        </div>
 
-            {loading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-                <CircularProgress size={24} sx={{ color: "#4ade80" }} />
-              </Box>
-            ) : (
-              displayedInvoices.map((inv) => (
-                <Box
-                  key={inv.id}
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "40px 1fr 180px 220px 140px 40px",
-                    px: "24px",
-                    py: 1.5,
-                    alignItems: "center",
-                    borderBottom: "1px solid rgba(255,255,255,0.04)",
-                    "&:hover": { bgcolor: "rgba(255,255,255,0.02)" },
-                  }}
-                >
-                  <Checkbox
-                    size="small"
-                    sx={{ color: "rgba(255,255,255,0.2)", p: 0 }}
-                  />
-                  <Typography
-                    sx={{
-                      color: "rgba(255,255,255,0.9)",
-                      fontSize: "0.85rem",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {inv.plan}
-                  </Typography>
-                  <Typography
-                    sx={{ color: "rgba(255,255,255,0.6)", fontSize: "0.85rem" }}
-                  >
-                    {inv.amount}
-                  </Typography>
-                  <Typography
-                    sx={{ color: "rgba(255,255,255,0.5)", fontSize: "0.8rem" }}
-                  >
-                    {inv.date}
-                  </Typography>
-                  <Box>
-                    <Chip
-                      icon={
-                        <CheckIcon
-                          sx={{
-                            fontSize: "0.9rem !important",
-                            color: "#4ade80 !important",
-                          }}
-                        />
-                      }
-                      label="Paid"
-                      size="small"
-                      sx={{
-                        bgcolor: "rgba(74, 222, 128, 0.08)",
-                        color: "#4ade80",
-                        fontWeight: 700,
-                        border: "1px solid rgba(74, 222, 128, 0.2)",
-                        borderRadius: "6px",
-                      }}
-                    />
-                  </Box>
-                  <IconButton
-                    onClick={() => window.open(inv.url, "_blank")}
-                    sx={{
-                      color: "rgba(255,255,255,0.3)",
-                      p: 0,
-                      "&:hover": { color: "#fff" },
-                    }}
-                  >
-                    <DownloadOutlinedIcon sx={{ fontSize: "1.2rem" }} />
-                  </IconButton>
-                </Box>
-              ))
-            )}
-          </Box>
-        </Box>
-
-        <TablePagination
-          component="div"
-          count={invoices.length}
-          page={page}
-          onPageChange={handleChangePage}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          rowsPerPageOptions={[5, 10, 25]}
-          sx={{
-            color: "rgba(255,255,255,0.6)",
-            borderBottom: "none",
-            ".MuiTablePagination-selectIcon": {
-              color: "rgba(255,255,255,0.6)",
-            },
-            ".MuiTablePagination-menuItem": { bgcolor: "#111", color: "#fff" },
-          }}
-        />
-      </Box>
-    </Box>
+        <div style={{ padding: "12px 24px", borderTop: `1px solid ${themeColors.borderLight}` }}>
+          <Pagination
+            totalItems={filteredInvoices.length}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
+            itemLabel="invoices"
+          />
+        </div>
+      </div>
+    </div>
   );
 }

@@ -3,6 +3,12 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 import EmailCustomizationTab from "../EmailCustomizationTab";
 import "@testing-library/jest-dom";
 
+jest.mock("../../../lib/compressImage.js", () => ({
+  compressImage: jest.fn(),
+}));
+
+const { compressImage } = require("../../../lib/compressImage.js");
+
 jest.mock("../EmailCustomizationTab", () => {
   const actual = jest.requireActual("../EmailCustomizationTab");
   return actual;
@@ -29,7 +35,9 @@ describe("EmailCustomizationTab", () => {
   const mockOnSave = jest.fn();
 
   beforeEach(() => {
+    jest.clearAllMocks();
     mockOnSave.mockClear();
+    compressImage.mockResolvedValue("data:image/png;base64,compressed");
   });
 
   const getBrandColorTextInput = () =>
@@ -323,5 +331,137 @@ describe("EmailCustomizationTab", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /save/i })).not.toBeDisabled();
     });
+  });
+
+  test("handles logo file upload and compression", async () => {
+    const mockFile = new File(["logo"], "logo.png", { type: "image/png" });
+    const mockCompressedImage = "data:image/png;base64,compressed";
+
+    compressImage.mockResolvedValueOnce(mockCompressedImage);
+
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const fileInput = screen.getAllByRole("button").find(btn => 
+      btn.querySelector('svg') && btn.parentElement.querySelector('input[type="file"]')
+    )?.parentElement?.querySelector('input[type="file"]');
+
+    expect(fileInput).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [mockFile] } });
+    });
+
+    await waitFor(() => {
+      expect(compressImage).toHaveBeenCalledWith(mockFile, {
+        maxWidth: 512,
+        maxHeight: 256,
+      });
+    });
+  });
+
+  test("handles logo upload with FileReader fallback when compression fails", async () => {
+    const mockFile = new File(["logo"], "logo.png", { type: "image/png" });
+    const mockDataUrl = "data:image/png;base64,fallback";
+
+    compressImage.mockRejectedValueOnce(new Error("Compression failed"));
+
+    // Mock FileReader
+    const mockFileReader = {
+      readAsDataURL: jest.fn(),
+      onload: null,
+      result: mockDataUrl,
+    };
+    global.FileReader = jest.fn(() => mockFileReader);
+
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const fileInput = screen.getAllByRole("button").find(btn => 
+      btn.querySelector('svg') && btn.parentElement.querySelector('input[type="file"]')
+    )?.parentElement?.querySelector('input[type="file"]');
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [mockFile] } });
+    });
+
+    await waitFor(() => {
+      expect(mockFileReader.readAsDataURL).toHaveBeenCalledWith(mockFile);
+    });
+
+    // Simulate FileReader onload
+    act(() => {
+      mockFileReader.onload({ target: { result: mockDataUrl } });
+    });
+
+    // The logo should be set via FileReader fallback
+    expect(mockFileReader.onload).toBeDefined();
+  });
+
+  test("handles no file selected for logo upload", async () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    const fileInput = screen.getAllByRole("button").find(btn => 
+      btn.querySelector('svg') && btn.parentElement.querySelector('input[type="file"]')
+    )?.parentElement?.querySelector('input[type="file"]');
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [] } });
+    });
+
+    // Should not throw error and compressImage should not be called
+    expect(compressImage).not.toHaveBeenCalled();
+  });
+
+  test("removes logo when remove button is clicked", async () => {
+    const orgWithLogo = { 
+      ...mockOrgData, 
+      email_branding: {
+        ...mockOrgData.email_branding,
+        logo_image: "data:image/png;base64,existing"
+      }
+    };
+
+    render(<EmailCustomizationTab orgData={orgWithLogo} onSave={mockOnSave} />);
+
+    // Find the remove button (should be visible when logo exists)
+    const removeButton = await screen.findByRole("button", { name: /remove/i });
+
+    await act(async () => {
+      fireEvent.click(removeButton);
+    });
+
+    // Logo should be removed, button should not be in document anymore
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /remove/i })).not.toBeInTheDocument();
+    });
+  });
+
+  test("changes brand color via color picker input", async () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    // Find color input (type="color")
+    const colorInputs = document.querySelectorAll('input[type="color"]');
+    expect(colorInputs.length).toBeGreaterThan(0);
+
+    const colorInput = colorInputs[0];
+
+    await act(async () => {
+      fireEvent.change(colorInput, { target: { value: "#ff0000" } });
+    });
+
+    // Color should be updated
+    expect(colorInput.value).toBe("#ff0000");
+  });
+
+  test("changes brand color via text input", async () => {
+    render(<EmailCustomizationTab orgData={mockOrgData} onSave={mockOnSave} />);
+
+    // Find the text input with placeholder
+    const textInput = screen.getByPlaceholderText("#1a1a2e");
+
+    await act(async () => {
+      fireEvent.change(textInput, { target: { value: "#00ff00" } });
+    });
+
+    expect(textInput.value).toBe("#00ff00");
   });
 });

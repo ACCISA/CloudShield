@@ -58,6 +58,7 @@ async function request(path, { method = "GET", body, headers, ...rest } = {}) {
       path === "/organizations/me" ||
       path.startsWith("/access-groups") ||
       path.startsWith("/file_shares") ||
+      path.startsWith("/workstations") ||
       /^\/organizations\/[^/]+\/users/.test(path));
 
   // Some call sites expect a Fetch Response contract (res.ok/res.status/res.json/res.text).
@@ -100,7 +101,11 @@ async function request(path, { method = "GET", body, headers, ...rest } = {}) {
 }
 
 export const apiGet = (path, opts) => request(path, { ...opts, method: "GET" });
-export const apiPost = (path, body, opts) => request(path, { ...opts, method: "POST", body });
-export const apiPatch = (path, body, opts) => request(path, { ...opts, method: "PATCH", body });
-export const apiDelete = (path, opts) => request(path, { ...opts, method: "DELETE" });
-export const apiUploadFile = (path, file, fieldName = "file") => request(path, { method: "POST", file, fieldName });
+export const apiPost = (path, body, opts) =>
+  request(path, { ...opts, method: "POST", body });
+export const apiPatch = (path, body, opts) =>
+  request(path, { ...opts, method: "PATCH", body });
+export const apiDelete = (path, opts) =>
+  request(path, { ...opts, method: "DELETE" });
+export const apiUploadFile = (path, file, fieldName = "file") =>
+  request(path, { method: "POST", file, fieldName });

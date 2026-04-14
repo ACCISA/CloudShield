@@ -24,6 +24,7 @@ def get_package_limits(package: Literal["basic", "pro", "enterprise"]) -> Dict[s
 
 class OrganizationBase(BaseModel):
     name: Optional[str] = None
+    logo: Optional[str] = None
     package: Literal["basic", "pro", "enterprise"] = "basic"
     workstation_limit: Optional[int] = None
     user_limit: Optional[int] = None
@@ -54,6 +55,7 @@ class OrganizationCreate(OrganizationBase):
 
 class OrganizationUpdate(BaseModel):
     name: Optional[str] = None
+    logo: Optional[str] = None
     package: Optional[Literal["basic", "pro", "enterprise"]] = None
     workstation_limit: Optional[int] = None
     user_limit: Optional[int] = None

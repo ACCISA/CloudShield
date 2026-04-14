@@ -2,6 +2,7 @@ import sys
 import types
 import unittest.mock
 import uuid
+from bson import ObjectId
 # create a reusable mock client and a fake redis module that returns it
 _mock_redis_client = unittest.mock.MagicMock()
 _mock_redis_client.get.return_value = None
@@ -86,7 +87,8 @@ def auth_client(client, monkeypatch):
 
         @app.before_request
         def _inject_test_user():
-            flask_g.user = {"id": "test-user", "role": "admin", "org_id": "test-org"}
+            # Use a valid ObjectId for org_id
+            flask_g.user = {"id": "test-user", "role": "admin", "org_id": "507f1f77bcf86cd799439011"}
 
         return app.test_client()
 
@@ -747,4 +749,523 @@ def test_vpn_config_success(mock_get, auth_client):
     data = resp.get_json()
     assert data["filename"] == "alice.ovpn"
     assert data["content_b64"] == "Y2xpZW50CmRldiB0dW4K"
+
+
+# ---------------------------------------------------------------------------
+# Helper Function Tests
+# ---------------------------------------------------------------------------
+
+def test_coerce_int():
+    """Test the _coerce_int helper function."""
+    from cloudshield.Server.routes.api import _coerce_int
+    
+    assert _coerce_int(5) == 5
+    assert _coerce_int("10") == 10
+    assert _coerce_int("abc") is None
+    assert _coerce_int(None) is None
+    assert _coerce_int(3.14) == 3
+
+
+def test_serialize_org():
+    """Test the _serialize_org helper function."""
+    from cloudshield.Server.routes.api import _serialize_org
+    from datetime import datetime, timezone
+    
+    now = datetime.now(timezone.utc)
+    doc = {
+        "_id": "507f1f77bcf86cd799439011",
+        "name": "Acme Corp",
+        "logo": "data:image/png;base64,abc",
+        "package": "enterprise",
+        "domain_name": "acme.local",
+        "realm_name": "ACME.LOCAL",
+        "workstation_limit": 50,
+        "user_limit": 100,
+        "storage_limit_gb": 1000,
+        "provisioning_status": "complete",
+        "provisioning_job_id": "job_123",
+        "created_at": now,
+        "updated_at": now,
+    }
+    
+    result = _serialize_org(doc)
+    assert result["id"] == "507f1f77bcf86cd799439011"
+    assert result["name"] == "Acme Corp"
+    assert result["logo"] == "data:image/png;base64,abc"
+    assert result["package"] == "enterprise"
+    assert result["domain_name"] == "acme.local"
+    assert result["workstation_limit"] == 50
+    assert result["created_at"] == now.isoformat()
+
+
+@patch("cloudshield.Server.routes.api.db_admin")
+def test_seed_workstations(mock_db_admin):
+    """Test the _seed_workstations helper function."""
+    from cloudshield.Server.routes.api import _seed_workstations
+    
+    mock_collection = MagicMock()
+    mock_db_admin.__getitem__.return_value = mock_collection
+    
+    # Test with count > 0
+    _seed_workstations("test_org", 3)
+    assert mock_collection.insert_many.call_count == 1
+    inserted_docs = mock_collection.insert_many.call_args[0][0]
+    assert len(inserted_docs) == 3
+    assert all(doc["org_id"] == "test_org" for doc in inserted_docs)
+    assert all(doc["status"] == "provisioning" for doc in inserted_docs)
+    
+    # Test with count <= 0 (should not insert)
+    mock_collection.reset_mock()
+    _seed_workstations("test_org", 0)
+    assert mock_collection.insert_many.call_count == 0
+
+
+# ---------------------------------------------------------------------------
+# GET /api/organization/<org_id> - Additional Coverage
+# ---------------------------------------------------------------------------
+
+def test_get_organization_invalid_id(client):
+    """GET /api/organization with invalid ObjectId format should return 400."""
+    with patch("bson.ObjectId") as mock_oid:
+        from bson.errors import InvalidId
+        mock_oid.side_effect = InvalidId("invalid ID")
+        resp = client.get("/api/organization/invalid_id_format")
+        assert resp.status_code == 400
+        assert "Invalid organization ID format" in resp.get_json()["error"]
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_get_organization_not_found(mock_orgs, client):
+    """GET /api/organization when org doesn't exist should return 404."""
+    mock_orgs.find_one.return_value = None
+    resp = client.get("/api/organization/507f1f77bcf86cd799439011")
+    assert resp.status_code == 404
+    assert "not found" in resp.get_json()["error"]
+
+
+# ---------------------------------------------------------------------------
+# GET /api/organizations/me
+# ---------------------------------------------------------------------------
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_get_my_organization_success(mock_orgs, auth_client, monkeypatch):
+    """GET /api/organizations/me should return current user's org."""
+    from datetime import datetime, timezone
+    from flask import g as flask_g
+    
+    # Mock g.user with org_id
+    now = datetime.now(timezone.utc)
+    fake_doc = {
+        "_id": ObjectId("507f1f77bcf86cd799439011"),
+        "name": "Test Org",
+        "package": "enterprise",
+        "workstation_limit": 10,
+        "created_at": now,
+    }
+    mock_orgs.find_one.return_value = fake_doc
+    
+    resp = auth_client.get("/api/organizations/me")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["organization"]["name"] == "Test Org"
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_get_my_organization_missing_org_id(mock_orgs, client):
+    """GET /api/organizations/me without org_id in token should return 401."""
+    from cloudshield.Server.server import create_app
+    from flask import g as flask_g
+    
+    app = create_app()
+    app.testing = True
+    
+    @app.before_request
+    def _inject_user_without_org():
+        flask_g.user = {"id": "test-user", "role": "user"}  # No org_id
+    
+    client = app.test_client()
+    resp = client.get("/api/organizations/me")
+    assert resp.status_code == 401
+    assert "org_id missing" in resp.get_json()["error"]
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_get_my_organization_invalid_format(mock_orgs, auth_client):
+    """GET /api/organizations/me with invalid org_id format should return 400."""
+    from cloudshield.Server.server import create_app
+    from flask import g as flask_g
+    
+    app = create_app()
+    app.testing = True
+    
+    @app.before_request
+    def _inject_user_bad_org():
+        flask_g.user = {"id": "test-user", "role": "user", "org_id": "invalid_format"}
+    
+    client = app.test_client()
+    resp = client.get("/api/organizations/me")
+    assert resp.status_code == 400
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_get_my_organization_not_found(mock_orgs, auth_client):
+    """GET /api/organizations/me when org doesn't exist should return 404."""
+    mock_orgs.find_one.return_value = None
+    resp = auth_client.get("/api/organizations/me")
+    assert resp.status_code == 404
+    assert "not found" in resp.get_json()["error"]
+
+
+# ---------------------------------------------------------------------------
+# PATCH /api/organizations/me
+# ---------------------------------------------------------------------------
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_update_my_organization_success(mock_orgs, auth_client):
+    """PATCH /api/organizations/me should update org successfully."""
+    from datetime import datetime, timezone
+    
+    updated_doc = {
+        "_id": ObjectId("507f1f77bcf86cd799439011"),
+        "name": "Updated Org",
+        "logo": "data:image/png;base64,new",
+        "package": "enterprise",
+        "updated_at": datetime.now(timezone.utc),
+    }
+    mock_orgs.find_one.return_value = updated_doc
+    
+    resp = auth_client.patch("/api/organizations/me", json={"name": "Updated Org"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["organization"]["name"] == "Updated Org"
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_update_my_organization_non_admin(mock_orgs, client):
+    """PATCH /api/organizations/me by non-admin should return 403."""
+    from cloudshield.Server.server import create_app
+    from flask import g as flask_g
+    
+    app = create_app()
+    app.testing = True
+    
+    @app.before_request
+    def _inject_non_admin():
+        flask_g.user = {"id": "test-user", "role": "user", "org_id": "507f1f77bcf86cd799439011"}
+    
+    client = app.test_client()
+    resp = client.patch("/api/organizations/me", json={"name": "New Name"})
+    assert resp.status_code == 403
+    assert "Admin role required" in resp.get_json()["error"]
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_update_my_organization_missing_org_in_token(mock_orgs, client):
+    """PATCH /api/organizations/me without org_id in token should return 401."""
+    from cloudshield.Server.server import create_app
+    from flask import g as flask_g
+    
+    app = create_app()
+    app.testing = True
+    
+    @app.before_request
+    def _inject_user_no_org():
+        flask_g.user = {"id": "test-user", "role": "admin"}  # No org_id
+    
+    client = app.test_client()
+    resp = client.patch("/api/organizations/me", json={"name": "New Name"})
+    assert resp.status_code == 401
+    assert "org_id missing" in resp.get_json()["error"]
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_update_my_organization_invalid_org_id_format(mock_orgs, client):
+    """PATCH /api/organizations/me with invalid org_id format should return 400."""
+    from cloudshield.Server.server import create_app
+    from flask import g as flask_g
+    
+    app = create_app()
+    app.testing = True
+    
+    @app.before_request
+    def _inject_bad_org():
+        flask_g.user = {"id": "test-user", "role": "admin", "org_id": "invalid_format"}
+    
+    client = app.test_client()
+    resp = client.patch("/api/organizations/me", json={"name": "New Name"})
+    assert resp.status_code == 400
+    assert "Invalid organization ID format" in resp.get_json()["error"]
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_update_my_organization_unknown_fields(mock_orgs, auth_client):
+    """PATCH /api/organizations/me with unknown fields should return 400."""
+    # Need to make find_one return something for update to proceed to validation
+    mock_orgs.find_one.return_value = {"_id": ObjectId("507f1f77bcf86cd799439011"), "name": "Test"}
+    resp = auth_client.patch("/api/organizations/me", json={"unknown_field": "value"})
+    assert resp.status_code == 400
+    assert "Unknown fields" in resp.get_json()["error"]
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_update_my_organization_logo_too_large(mock_orgs, auth_client):
+    """PATCH /api/organizations/me with oversized logo should return 400."""
+    mock_orgs.find_one.return_value = {"_id": ObjectId("507f1f77bcf86cd799439011"), "name": "Test"}
+    large_logo = "data:image/png;base64," + ("A" * 1_500_000)
+    resp = auth_client.patch("/api/organizations/me", json={"logo": large_logo})
+    assert resp.status_code == 400
+    assert "Logo must be under 1 MB" in resp.get_json()["error"]
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_update_my_organization_invalid_name_type(mock_orgs, auth_client):
+    """PATCH /api/organizations/me with non-string name should return 400."""
+    mock_orgs.find_one.return_value = {"_id": ObjectId("507f1f77bcf86cd799439011"), "name": "Test"}
+    resp = auth_client.patch("/api/organizations/me", json={"name": 123})
+    assert resp.status_code == 400
+    assert "name must be a string" in resp.get_json()["error"]
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_update_my_organization_clear_logo(mock_orgs, auth_client):
+    """PATCH /api/organizations/me with null logo should clear it."""
+    updated_doc = {
+        "_id": ObjectId("507f1f77bcf86cd799439011"),
+        "name": "Test Org",
+        "logo": None,
+        "package": "enterprise",
+    }
+    mock_orgs.find_one.return_value = updated_doc
+    
+    resp = auth_client.patch("/api/organizations/me", json={"logo": None})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["organization"]["logo"] is None
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_update_my_organization_db_error(mock_orgs, auth_client):
+    """PATCH /api/organizations/me with DB error should return 500."""
+    mock_orgs.update_one.side_effect = Exception("DB Error")
+    mock_orgs.find_one.return_value = {"_id": ObjectId("507f1f77bcf86cd799439011"), "name": "Test"}
+    
+    resp = auth_client.patch("/api/organizations/me", json={"name": "New Name"})
+    assert resp.status_code == 500
+    assert "Internal server error" in resp.get_json()["error"]
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_update_my_organization_empty_payload(mock_orgs, auth_client):
+    """PATCH /api/organizations/me with empty payload should still update timestamp."""
+    updated_doc = {
+        "_id": ObjectId("507f1f77bcf86cd799439011"),
+        "name": "Test Org",
+        "package": "enterprise",
+    }
+    mock_orgs.find_one.return_value = updated_doc
+    
+    resp = auth_client.patch("/api/organizations/me", json={})
+    assert resp.status_code == 200
+    # Verify update_one was called even with empty payload (to update timestamp)
+    assert mock_orgs.update_one.called
+
+
+@patch("cloudshield.Server.routes.api.organizations")
+def test_update_my_organization_not_found_after_update(mock_orgs, auth_client):
+    """PATCH /api/organizations/me when org disappears after update."""
+    # First find_one returns None (simulating race condition)
+    mock_orgs.find_one.return_value = None
+    
+    resp = auth_client.patch("/api/organizations/me", json={"name": "New Name"})
+    assert resp.status_code == 404
+    assert "not found" in resp.get_json()["error"]
+
+
+# ---------------------------------------------------------------------------
+# GET /api/organizations/me/metrics
+# ---------------------------------------------------------------------------
+
+@patch("cloudshield.Server.routes.api.db")
+@patch("cloudshield.Server.routes.api.db_admin")
+def test_get_my_organization_metrics_success(mock_db_admin, mock_db, auth_client):
+    """GET /api/organizations/me/metrics should return resource counts."""
+    mock_users = MagicMock()
+    mock_users.count_documents.return_value = 25
+    mock_db.__getitem__.return_value = mock_users
+    
+    mock_workstations = MagicMock()
+    mock_workstations.count_documents.return_value = 10
+    mock_groups = MagicMock()
+    mock_groups.count_documents.return_value = 5
+    mock_shares = MagicMock()
+    mock_shares.count_documents.return_value = 3
+    
+    def get_collection(name):
+        if name == "workstations":
+            return mock_workstations
+        elif name == "access_groups":
+            return mock_groups
+        elif name == "shares":
+            return mock_shares
+        return MagicMock()
+    
+    mock_db_admin.__getitem__.side_effect = get_collection
+    
+    resp = auth_client.get("/api/organizations/me/metrics")
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["stats"]["users"] == 25
+    assert data["stats"]["workstations"] == 10
+    assert data["stats"]["access_groups"] == 5
+    assert data["stats"]["shares"] == 3
+
+
+@patch("cloudshield.Server.routes.api.db_admin")
+def test_get_my_organization_metrics_missing_org_id(mock_db_admin, client):
+    """GET /api/organizations/me/metrics without org_id should return 401."""
+    from cloudshield.Server.server import create_app
+    from flask import g as flask_g
+    
+    app = create_app()
+    app.testing = True
+    
+    @app.before_request
+    def _inject_user_no_org():
+        flask_g.user = {"id": "test-user", "role": "user"}
+    
+    client = app.test_client()
+    resp = client.get("/api/organizations/me/metrics")
+    assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# PATCH /api/file_shares/<org_id>/<share_name> - Additional Coverage
+# ---------------------------------------------------------------------------
+
+@patch("cloudshield.Server.routes.api.service_dispatcher")
+@patch("cloudshield.Server.routes.api.update_share")
+def test_update_file_share_all_fields(mock_update_share, mock_dispatcher, client):
+    """Test updating file share with all possible fields."""
+    mock_update_share.return_value = True
+    mock_dispatcher.return_value = MagicMock(id="dc_job_123")
+    
+    resp = client.patch("/api/file_shares/acme/Finance", json={
+        "kind": "folder",
+        "groups": ["finance"],
+        "users": ["alice", "bob"],
+        "description": "Finance files",
+        "owner": "admin@acme.com",
+        "current_size": 1024000,
+        "max_size": 50
+    })
+    
+    assert resp.status_code == 200
+    assert resp.json["status"] == "SUCCESS"
+    assert "dc_job_id" in resp.json
+
+
+@patch("cloudshield.Server.routes.api.service_dispatcher")
+@patch("cloudshield.Server.routes.api.update_share")
+def test_update_file_share_dc_sync_failure(mock_update_share, mock_dispatcher, client):
+    """Test that DC sync failure is non-blocking."""
+    mock_update_share.return_value = True
+    mock_dispatcher.side_effect = Exception("DC connection failed")
+    
+    resp = client.patch("/api/file_shares/acme/Finance", json={"description": "New desc"})
+    
+    # Should still return 200 even if DC sync fails
+    assert resp.status_code == 200
+    assert resp.json["status"] == "SUCCESS"
+    assert "dc_job_id" not in resp.json
+
+
+# ---------------------------------------------------------------------------
+# POST /api/task/provisionworkstations - Additional Coverage
+# ---------------------------------------------------------------------------
+
+def test_provision_workstations_invalid_count_type(client):
+    """Test provision workstations with invalid count type."""
+    resp = client.post("/api/task/provisionworkstations", json={
+        "org_id": "acme",
+        "count": "not_a_number"
+    })
+    assert resp.status_code == 400
+    assert "count must be an integer" in resp.get_json()["error"]
+
+
+@patch("cloudshield.Server.routes.api.service_dispatcher")
+def test_provision_workstations_negative_count(mock_dispatcher, client):
+    """Test provision workstations with negative count defaults to 1."""
+    mock_dispatcher.return_value = MagicMock(id="job_neg")
+    
+    resp = client.post("/api/task/provisionworkstations", json={
+        "org_id": "acme",
+        "count": -5
+    })
+    assert resp.status_code == 202
+    
+    # Verify dispatcher was called with count 1
+    call_kwargs = mock_dispatcher.call_args[1]
+    assert call_kwargs["count"] == 1
+
+
+# ---------------------------------------------------------------------------
+# POST /api/task/dc/add_user - Missing Email Test
+# ---------------------------------------------------------------------------
+
+def test_dc_add_user_missing_email(client):
+    """Test DC add user with missing email."""
+    resp = client.post("/api/task/dc/add_user", json={
+        "org_id": "acme",
+        "username": "testuser",
+        "password": "SecurePass123!"
+    })
+    assert resp.status_code == 400
+    data = resp.get_json()
+    assert "email" in data["error"]
+
+
+# ---------------------------------------------------------------------------
+# POST /api/task/dc/add_user_to_group - Complete Coverage
+# ---------------------------------------------------------------------------
+
+def test_task_dc_add_user_to_group_all_params(client):
+    """Test DC add user to group with all parameters."""
+    resp = client.post("/api/task/dc/add_user_to_group", json={
+        "org_id": "acme",
+        "username": "alice",
+        "group_name": "engineering"
+    })
+    assert resp.status_code == 202
+    assert "job_id" in resp.get_json()
+
+
+def test_task_dc_add_user_to_group_missing_org(client):
+    """Test DC add user to group with missing org_id."""
+    resp = client.post("/api/task/dc/add_user_to_group", json={
+        "username": "alice",
+        "group_name": "engineering"
+    })
+    assert resp.status_code == 422
+    assert "org_id" in resp.get_json()["error"]
+
+
+def test_task_dc_add_user_to_group_missing_username(client):
+    """Test DC add user to group with missing username."""
+    resp = client.post("/api/task/dc/add_user_to_group", json={
+        "org_id": "acme",
+        "group_name": "engineering"
+    })
+    assert resp.status_code == 422
+    assert "username" in resp.get_json()["error"]
+
+
+def test_task_dc_add_user_to_group_missing_group(client):
+    """Test DC add user to group with missing group_name."""
+    resp = client.post("/api/task/dc/add_user_to_group", json={
+        "org_id": "acme",
+        "username": "alice"
+    })
+    assert resp.status_code == 422
+    assert "group_name" in resp.get_json()["error"]
 

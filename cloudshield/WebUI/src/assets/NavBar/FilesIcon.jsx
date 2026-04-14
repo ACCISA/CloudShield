@@ -4,7 +4,7 @@ export default function FilesIcon({
   height = 13,
   className = "",
 }) {
-  const color = selected ? "var(--text-primary)" : "#BCBCBC";
+  const color = selected ? "var(--sidebar-icon-active)" : "#BCBCBC";
   const fillOpacity = selected ? "1" : "0.2";
 
   return (

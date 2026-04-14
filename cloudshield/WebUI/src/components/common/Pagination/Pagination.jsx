@@ -16,6 +16,7 @@
  */
 import { useState } from "react";
 import PropTypes from "prop-types";
+import { useThemeColors } from "../../../hooks/useThemeColors.js";
 
 function Pagination({
   totalItems,
@@ -27,6 +28,7 @@ function Pagination({
   testId = "pagination",
 }) {
   const [hoveredControl, setHoveredControl] = useState(null);
+  const themeColors = useThemeColors();
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage + 1;
   const endIndex = Math.min(currentPage * itemsPerPage, totalItems);
@@ -105,7 +107,7 @@ function Pagination({
       alignItems: "center",
       marginTop: "8px",
       paddingTop: "8px",
-      borderTop: "1px solid rgba(255,255,255,0.08)",
+      borderTop: `1px solid ${themeColors.borderLight}`,
       flexWrap: "wrap",
     },
     controls: {
@@ -117,9 +119,9 @@ function Pagination({
       backgroundColor: "transparent",
       borderWidth: "1px",
       borderStyle: "solid",
-      borderColor: "rgba(255,255,255,0.12)",
+      borderColor: themeColors.border,
       borderRadius: "6px",
-      color: "rgba(255,255,255,0.7)",
+      color: themeColors.textSecondary,
       padding: "4px 8px",
       fontSize: "13px",
       cursor: "pointer",
@@ -131,9 +133,9 @@ function Pagination({
       justifyContent: "center",
     },
     pageButtonActive: {
-      backgroundColor: "#fff",
-      color: "#0f0f0f",
-      borderColor: "#fff",
+      backgroundColor: themeColors.primary,
+      color: themeColors.primaryText,
+      borderColor: themeColors.primary,
       fontWeight: "600",
     },
     pageButtonDisabled: {
@@ -141,7 +143,7 @@ function Pagination({
       cursor: "not-allowed",
     },
     ellipsis: {
-      color: "rgba(255,255,255,0.5)",
+      color: themeColors.textTertiary,
       fontSize: "13px",
       padding: "4px 8px",
       minWidth: "28px",
@@ -152,18 +154,22 @@ function Pagination({
       userSelect: "none",
     },
     pageInfo: {
-      color: "rgba(255,255,255,0.7)",
+      color: themeColors.textSecondary,
       fontSize: "13px",
       margin: "0 4px",
     },
     itemCount: {
       fontSize: "13px",
-      color: "rgba(255,255,255,0.5)",
+      color: themeColors.textTertiary,
       fontWeight: "400",
     },
   };
 
-  const getPageButtonStyle = ({ isActive = false, isDisabled = false, controlKey }) => {
+  const getPageButtonStyle = ({
+    isActive = false,
+    isDisabled = false,
+    controlKey,
+  }) => {
     const isHovered = hoveredControl === controlKey;
 
     return {
@@ -172,8 +178,8 @@ function Pagination({
       ...(isDisabled ? styles.pageButtonDisabled : {}),
       ...(!isActive && !isDisabled && isHovered
         ? {
-            backgroundColor: "rgba(255,255,255,0.08)",
-            borderColor: "rgba(255,255,255,0.2)",
+            backgroundColor: themeColors.lightOverlay,
+            borderColor: themeColors.borderStrong,
           }
         : {}),
     };
@@ -182,7 +188,7 @@ function Pagination({
   return (
     <div data-testid={testId} style={styles.container}>
       <span data-testid={`${testId}-info`} style={styles.itemCount}>
-       Showing {totalItems > 0 ? startIndex : 0}-
+        Showing {totalItems > 0 ? startIndex : 0}-
         {totalItems > 0 ? endIndex : 0} of {totalItems} {itemLabel}
       </span>
       {totalPages > 1 && (
@@ -206,7 +212,8 @@ function Pagination({
           {/* Page numbers with ellipsis */}
           {pageNumbers.map((page, index) => {
             if (page === "...") {
-              const ellipsisKey = index < pageNumbers.length / 2 ? "start" : "end";
+              const ellipsisKey =
+                index < pageNumbers.length / 2 ? "start" : "end";
               return (
                 <span
                   key={`ellipsis-${ellipsisKey}`}

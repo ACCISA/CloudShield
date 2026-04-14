@@ -16,15 +16,15 @@ describe('SignupCard', () => {
   });
 
   it('renders logo image', () => {
-    render(
+    const { container } = render(
       <SignupCard>
         <div>Content</div>
       </SignupCard>
     );
 
-    const logo = screen.getByAltText('CloudShield');
+    const logo = container.querySelector('.auth-card__logo');
     expect(logo).toBeInTheDocument();
-    expect(logo.getAttribute('src')).toContain('cloudshield_logo_black.png');
+    expect(logo.tagName.toLowerCase()).toBe('svg');
   });
 
   it('applies the expected card and logo classes', () => {
@@ -35,9 +35,9 @@ describe('SignupCard', () => {
     );
 
     const card = container.firstChild;
-    const logo = screen.getByAltText('CloudShield');
+    const logo = container.querySelector('.auth-card__logo');
     expect(card).toHaveClass('auth-card');
-    expect(logo).toHaveClass('auth-card__logo');
+    expect(logo).toBeInTheDocument();
   });
 
   it('renders with multiple children', () => {
@@ -58,7 +58,7 @@ describe('SignupCard', () => {
     const { container } = render(<SignupCard />);
     
     // Should still render the card structure and logo
-    expect(screen.getByAltText('CloudShield')).toBeInTheDocument();
+    expect(container.querySelector('.auth-card__logo')).toBeInTheDocument();
     expect(container.querySelector('.auth-card')).toBeInTheDocument();
   });
 
@@ -124,14 +124,14 @@ describe('SignupCard', () => {
   it('handles null children gracefully', () => {
     const { container } = render(<SignupCard>{null}</SignupCard>);
 
-    expect(screen.getByAltText('CloudShield')).toBeInTheDocument();
+    expect(container.querySelector('.auth-card__logo')).toBeInTheDocument();
     expect(container.querySelector('.auth-card')).toBeInTheDocument();
   });
 
   it('handles undefined children gracefully', () => {
     const { container } = render(<SignupCard>{undefined}</SignupCard>);
 
-    expect(screen.getByAltText('CloudShield')).toBeInTheDocument();
+    expect(container.querySelector('.auth-card__logo')).toBeInTheDocument();
     expect(container.querySelector('.auth-card')).toBeInTheDocument();
   });
 });

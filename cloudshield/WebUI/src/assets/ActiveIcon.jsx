@@ -1,7 +1,7 @@
 export default function StatusDotIcon({
   width = 12,
   height = 12,
-  outerColor = "#1F381F",
+  outerColor = "rgba(4, 196, 10, 0.2)",
   innerColor = "#04C40A",
   className = "",
 }) {

@@ -42,7 +42,6 @@ describe("WorkstationsPage", () => {
   const runXfreerdpMock = vi.fn<ElectronAPI["runXfreerdp"]>();
   const showOpenDialogMock = vi.fn<ElectronAPI["showOpenDialog"]>();
   const killProcessMock = vi.fn<ElectronAPI["killProcess"]>();
-  const appWindow = globalThis as unknown as Window;
   beforeEach(() => {
     loadAuthMock.mockReset();
     clearAuthMock.mockReset();
@@ -84,8 +83,8 @@ describe("WorkstationsPage", () => {
   });
 
   afterEach(() => {
-    vi.resetAllMocks();
-    delete appWindow.authStore;
+    vi.clearAllMocks();
+    delete window.authStore;
     localStorage.clear();
   });
 
@@ -170,6 +169,7 @@ describe("WorkstationsPage", () => {
 
   it("shows auth error when no token is available", async () => {
     loadAuthMock.mockReturnValue({});
+    getWorkstationTemplatesMock.mockResolvedValueOnce([]);
 
     render(<WorkstationsPage />);
 
@@ -181,6 +181,7 @@ describe("WorkstationsPage", () => {
       accessToken: "token",
       expiresAt: Date.now() - 1000,
     });
+    getWorkstationTemplatesMock.mockResolvedValueOnce([]);
 
     render(<WorkstationsPage />);
 
@@ -249,7 +250,7 @@ describe("WorkstationsPage", () => {
   });
 
   it("uses local storage auth when authStore is unavailable", async () => {
-    delete appWindow.authStore;
+    delete window.authStore;
     localStorage.setItem(
       "cloudshield.auth",
       JSON.stringify({
@@ -331,7 +332,7 @@ describe("WorkstationsPage", () => {
     });
     getWorkstationTemplatesMock.mockResolvedValueOnce([]);
     localStorage.setItem("cloudshield.auth", "{}");
-    const dispatchSpy = vi.spyOn(appWindow, "dispatchEvent");
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
 
     render(<WorkstationsPage />);
 
