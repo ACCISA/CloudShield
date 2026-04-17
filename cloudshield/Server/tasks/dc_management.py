@@ -569,6 +569,10 @@ def dc_add_user(org_id: str, username: str, password: str, email: str):
 
         # Generate and store VPN config for the new user
         is_local_depl = os.environ.get("LOCAL_DEPLOYMENT", False)
+        if is_local_depl == "true": 
+            is_local_depl = True
+        else:
+            is_local_depl = False
         vpn_result = create_vpn_config_for_user(org_id, username, nodes, logger, debug_localhost_remote=is_local_depl)
         return {
             "status": "SUCCESS",
